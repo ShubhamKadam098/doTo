@@ -8,7 +8,10 @@ import { todayKey } from '../lib/date'
  */
 export function useReconcileDay(onDayResolved: (today: string) => void): void {
   const callbackRef = useRef(onDayResolved)
-  callbackRef.current = onDayResolved
+
+  useEffect(() => {
+    callbackRef.current = onDayResolved
+  }, [onDayResolved])
 
   useEffect(() => {
     let lastSeen = ''

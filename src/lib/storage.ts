@@ -78,7 +78,7 @@ function migrate(raw: Record<string, unknown>): {
 export function load(storage: Storage | undefined = safeStorage()): LoadResult {
   if (!storage) return { state: { ...EMPTY_STATE }, recovered: false }
 
-  let raw: string | null = null
+  let raw: string | null
   try {
     raw = storage.getItem(STORAGE_KEY)
   } catch {
