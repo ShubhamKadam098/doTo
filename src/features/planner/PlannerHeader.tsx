@@ -18,43 +18,48 @@ export function PlannerHeader({ onOpenSearch }: { onOpenSearch: () => void }) {
   const planner = usePlanner()
 
   return (
-    <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 px-6 pt-6 pb-8 sm:px-10 sm:pt-10 sm:pb-14">
-      <h1 className="text-[1.75rem] font-bold tracking-tight sm:text-[2.5rem]">
+    <header className="flex flex-wrap items-center gap-x-3 gap-y-2.5 px-4 pt-5 pb-6 sm:gap-x-6 sm:gap-y-4 sm:px-10 sm:pt-10 sm:pb-14">
+      <h1 className="mr-auto text-2xl font-bold tracking-tight sm:text-[2.5rem]">
         {formatWeekTitle(planner.weekStart)}
       </h1>
 
-      <div className="flex items-center gap-2 sm:gap-3">
-        <div
-          role="radiogroup"
-          aria-label="Filter tasks"
-          className="mr-1 flex items-center gap-1"
-        >
-          {FILTERS.map((filter) => (
-            <button
-              key={filter}
-              type="button"
-              role="radio"
-              aria-checked={planner.filter === filter}
-              onClick={() => planner.setFilter(filter)}
-              className={`rounded-full px-3 py-1.5 text-sm transition-colors ${
-                planner.filter === filter
-                  ? 'bg-elevated text-text'
-                  : 'text-muted hover:text-text'
-              }`}
-            >
-              {FILTER_LABEL[filter]}
-            </button>
-          ))}
-        </div>
+      {/* Filters wrap to a line of their own before the week controls overflow. */}
+      <div
+        role="radiogroup"
+        aria-label="Filter tasks"
+        className="order-last flex w-full items-center gap-0.5 sm:order-none sm:w-auto sm:gap-1"
+      >
+        {FILTERS.map((filter) => (
+          <button
+            key={filter}
+            type="button"
+            role="radio"
+            aria-checked={planner.filter === filter}
+            onClick={() => planner.setFilter(filter)}
+            className={`rounded-full px-2.5 py-1.5 text-[0.8125rem] transition-colors sm:px-3 sm:text-sm ${
+              planner.filter === filter
+                ? 'bg-elevated text-text'
+                : 'text-muted hover:text-text'
+            }`}
+          >
+            {FILTER_LABEL[filter]}
+          </button>
+        ))}
+      </div>
 
-        <IconButton label="Search tasks (Ctrl+K)" onClick={onOpenSearch}>
+      <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+        <IconButton
+          label="Search tasks (Ctrl+K)"
+          onClick={onOpenSearch}
+          className="bg-elevated text-text"
+        >
           <SearchIcon />
         </IconButton>
 
         <button
           type="button"
           onClick={planner.goToToday}
-          className="rounded-full px-3 py-1.5 text-sm text-muted transition-colors hover:text-text"
+          className="rounded-full px-2.5 py-1.5 text-[0.8125rem] text-muted transition-colors hover:text-text sm:px-3 sm:text-sm"
         >
           Today
         </button>

@@ -56,7 +56,7 @@ export function PriorityMenu({ value, onChange, dim }: PriorityMenuProps) {
         <div
           role="menu"
           aria-label="Priority"
-          className="absolute top-6 left-0 z-30 w-32 rounded-lg border border-line bg-elevated py-1"
+          className="absolute top-6 right-0 z-30 w-32 rounded-lg border border-line bg-elevated py-1"
         >
           {PRIORITIES.map((priority) => (
             <button

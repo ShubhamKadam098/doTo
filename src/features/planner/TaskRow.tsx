@@ -30,8 +30,10 @@ export function TaskRow({
   const planner = usePlanner()
   const { focus, editing } = planner
   const isFocused = focus?.date === date && focus.row === row
+  const isTabbable = focus
+    ? isFocused
+    : planner.defaultFocus.date === date && planner.defaultFocus.row === row
   const isEditing = isFocused && editing
-  const [seed, setSeed] = useState('')
   const titleRef = useRef<HTMLButtonElement>(null)
 
   const {
@@ -51,10 +53,7 @@ export function TaskRow({
     if (isFocused && !isEditing) titleRef.current?.focus()
   }, [isFocused, isEditing])
 
-  const startEditing = (initial = '') => {
-    setSeed(initial)
-    planner.focusSlot({ date, row }, true)
-  }
+  const startEditing = () => planner.focusSlot({ date, row }, true)
 
   const commit = (value: string) => {
     if (task) planner.renameTask(task.id, value)
@@ -63,7 +62,6 @@ export function TaskRow({
 
   const finishEditing = (value: string, advance: boolean) => {
     commit(value)
-    setSeed('')
     if (!advance) {
       planner.focusSlot({ date, row })
       return
@@ -88,7 +86,7 @@ export function TaskRow({
       case 'Enter':
         event.preventDefault()
         if (variant === 'mobile' && task && onOpenDetail) onOpenDetail(task)
-        else startEditing(task?.title ?? '')
+        else startEditing()
         return
       case ' ':
         if (!task) return
@@ -105,21 +103,11 @@ export function TaskRow({
         break
     }
 
-    if (task && PRIORITY_BY_KEY[event.key]) {
+    // Number keys set priority; every other letter is left to the global
+    // shortcuts (T, N) so they keep working while a row has focus.
+    if (task && PRIORITY_BY_KEY[event.key] && !event.metaKey && !event.ctrlKey) {
       event.preventDefault()
       planner.setPriority(task.id, PRIORITY_BY_KEY[event.key])
-      return
-    }
-
-    // Spreadsheet behaviour: typing over a row starts editing with that key.
-    if (
-      event.key.length === 1 &&
-      !event.metaKey &&
-      !event.ctrlKey &&
-      !event.altKey
-    ) {
-      event.preventDefault()
-      startEditing(event.key)
     }
   }
 
@@ -139,22 +127,11 @@ export function TaskRow({
         isDragging ? 'z-20 opacity-40' : ''
       }`}
     >
-      {task && !isEditing && (
-        <PriorityMenu
-          value={task.priority}
-          onChange={(priority) => planner.setPriority(task.id, priority)}
-          dim
-        />
-      )}
-
       {isEditing ? (
         <TitleInput
-          initial={seed || task?.title || ''}
+          initial={task?.title ?? ''}
           date={date}
-          onCancel={() => {
-            setSeed('')
-            planner.focusSlot({ date, row })
-          }}
+          onCancel={() => planner.focusSlot({ date, row })}
           onCommit={finishEditing}
         />
       ) : (
@@ -163,10 +140,14 @@ export function TaskRow({
           type="button"
           {...attributes}
           {...listeners}
-          tabIndex={isFocused ? 0 : -1}
+          tabIndex={isTabbable ? 0 : -1}
+          onFocus={() => {
+            // Keeps keyboard navigation anchored to whatever the user focused.
+            if (!isFocused) planner.focusSlot({ date, row })
+          }}
           onClick={() => {
             if (isMobile && task && onOpenDetail) onOpenDetail(task)
-            else startEditing(task?.title ?? '')
+            else startEditing()
           }}
           aria-label={
             task
@@ -181,6 +162,14 @@ export function TaskRow({
         >
           {task?.title ?? ' '}
         </button>
+      )}
+
+      {task && !isEditing && (
+        <PriorityMenu
+          value={task.priority}
+          onChange={(priority) => planner.setPriority(task.id, priority)}
+          dim
+        />
       )}
 
       {task && !isEditing && (

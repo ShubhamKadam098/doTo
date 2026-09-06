@@ -50,7 +50,7 @@ export function TaskDetailSheet({
             onClose()
           }
         }}
-        className="w-full rounded-2xl border border-line bg-elevated p-5 pb-7"
+        className="w-full rounded-2xl border border-line bg-elevated p-5 pb-7 outline-none"
       >
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm text-muted">{formatFullDate(task.date)}</p>

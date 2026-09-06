@@ -33,7 +33,7 @@ export function DayColumn({ day, rowCount }: DayColumnProps) {
       >
         <h2
           className={`truncate text-[1.0625rem] font-bold tracking-tight ${
-            day.isToday ? 'text-accent' : day.isPast ? 'text-muted' : 'text-text'
+            day.isToday ? 'text-accent' : 'text-text'
           }`}
         >
           {formatDayNumber(day.date)}

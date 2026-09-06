@@ -31,7 +31,6 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
         date,
         tasks: applyFilter(tasksForDate(state.tasks, date), filter),
         isToday: date === today,
-        isPast: date < today,
       })),
     [weekStart, state.tasks, filter, today],
   )
@@ -41,6 +40,15 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   const rowCount = useMemo(
     () => Math.max(MIN_ROWS, ...days.map((day) => day.tasks.length + 1)),
     [days],
+  )
+
+  // Keeps one row tabbable so the grid is reachable with the Tab key.
+  const defaultFocus = useMemo<FocusTarget>(
+    () => ({
+      date: days.some((day) => day.isToday) ? today : days[0].date,
+      row: 0,
+    }),
+    [days, today],
   )
 
   const focusSlot = useCallback(
@@ -135,6 +143,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       rowCount,
       filter,
       focus,
+      defaultFocus,
       editing,
       allTasks: state.tasks,
       canUndo,
@@ -162,6 +171,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       rowCount,
       filter,
       focus,
+      defaultFocus,
       editing,
       state.tasks,
       canUndo,

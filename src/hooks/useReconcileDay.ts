@@ -3,8 +3,9 @@ import { todayKey } from '../lib/date'
 
 /**
  * Calls `onDayResolved` on load and whenever the app resumes (tab visible,
- * window focused, bfcache restore) or the calendar date changes underneath a
- * long-lived tab. Deliberately not a timer.
+ * window focused, bfcache restore). Reconciliation is driven by those lifecycle
+ * events, not by a timer; the one-minute poll only exists to notice midnight
+ * passing in a tab that is left open and never blurred.
  */
 export function useReconcileDay(onDayResolved: (today: string) => void): void {
   const callbackRef = useRef(onDayResolved)

@@ -10,7 +10,6 @@ export interface DayModel {
   date: string
   tasks: Task[]
   isToday: boolean
-  isPast: boolean
 }
 
 export interface PlannerValue {
@@ -21,6 +20,8 @@ export interface PlannerValue {
   rowCount: number
   filter: Filter
   focus: FocusTarget | null
+  /** Row that owns the tab stop before the user has focused anything. */
+  defaultFocus: FocusTarget
   editing: boolean
   allTasks: Task[]
   canUndo: boolean

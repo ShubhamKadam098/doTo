@@ -57,7 +57,7 @@ function MobileDaySection({ day, onOpenDetail }: MobileDaySectionProps) {
       >
         <h2
           className={`text-[1.0625rem] font-bold tracking-tight ${
-            day.isToday ? 'text-accent' : day.isPast ? 'text-muted' : 'text-text'
+            day.isToday ? 'text-accent' : 'text-text'
           }`}
         >
           {formatDayNumber(day.date)}
