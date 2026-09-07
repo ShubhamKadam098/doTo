@@ -156,7 +156,7 @@ export function TaskRow({
             ? 'bg-elevated ring-1 ring-accent/45 ring-inset'
             : isFocused
               ? 'bg-elevated'
-              : 'group-hover:bg-elevated/50'
+              : ''
         }`}
       />
 
