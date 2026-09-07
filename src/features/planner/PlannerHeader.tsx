@@ -19,7 +19,7 @@ export function PlannerHeader({ onOpenSearch }: { onOpenSearch: () => void }) {
 
   return (
     <header className="flex flex-wrap items-center gap-x-3 gap-y-2.5 px-4 pt-5 pb-6 sm:gap-x-6 sm:gap-y-4 sm:px-10 sm:pt-10 sm:pb-14">
-      <h1 className="mr-auto text-2xl font-bold tracking-tight sm:text-[2.5rem]">
+      <h1 className="mr-auto text-2xl font-bold tracking-[-0.035em] sm:text-[2.5rem]">
         {formatWeekTitle(planner.weekStart)}
       </h1>
 
