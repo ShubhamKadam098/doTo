@@ -26,7 +26,7 @@ export function SearchDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 px-4 pt-[12vh]"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 px-4 pt-[12vh] animate-in fade-in duration-(--duration-fast)"
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose()
       }}
@@ -35,7 +35,7 @@ export function SearchDialog({ onClose }: { onClose: () => void }) {
         role="dialog"
         aria-modal="true"
         aria-label="Search tasks"
-        className="w-full max-w-xl overflow-hidden rounded-xl border border-line bg-elevated"
+        className="w-full max-w-xl overflow-hidden rounded-xl border border-line bg-elevated animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-(--duration-base) ease-(--ease-out)"
         onKeyDown={(event) => {
           if (event.key === 'Escape') {
             event.stopPropagation()

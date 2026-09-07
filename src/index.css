@@ -16,6 +16,15 @@
   --color-priority-medium: #d29922;
   --color-priority-high: #f85149;
 
+  /* One curve and two speeds, so everything in the app moves alike. */
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+
+  /* Picked up by every `transition-*` utility, so the curve is shared. */
+  --default-transition-timing-function: var(--ease-out);
+  --default-transition-duration: var(--duration-fast);
+
   --spacing-row: 3.25rem;
   --spacing-row-mobile: 2.75rem;
 
@@ -130,6 +139,48 @@
   body[data-dragging],
   body[data-dragging] * {
     cursor: grabbing !important;
+  }
+}
+
+/*
+  Deleting a task leaves a gap the rows below have to close. Naming each row
+  lets the browser tween it between the two layouts instead of snapping.
+*/
+
+/*
+  A view transition otherwise snapshots the whole document as one group and
+  cross-fades it, which reads as the entire page flickering. Opting the root
+  out leaves only the named rows animating; everything else swaps instantly.
+*/
+:root {
+  view-transition-name: none;
+}
+
+::view-transition-group(*) {
+  animation-duration: var(--duration-base);
+  animation-timing-function: var(--ease-out);
+}
+
+::view-transition-old(*) {
+  animation-duration: var(--duration-fast);
+  animation-timing-function: var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /*
+    Honour the system setting rather than animating regardless. Not removed
+    outright: a single frame still lets transition-driven state settle.
+  */
+  *,
+  *::before,
+  *::after,
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

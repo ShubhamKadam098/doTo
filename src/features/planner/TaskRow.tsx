@@ -138,6 +138,10 @@ export function TaskRow({
     style: {
       transform: CSS.Transform.toString(transform),
       transition,
+      // Lets the browser animate this row between the position it held before
+      // a delete and the one it holds after. Dropped while dragging, where
+      // dnd-kit is already moving the row itself.
+      viewTransitionName: task && !isDragging ? `task-${task.id}` : undefined,
     },
     onKeyDown: onRowKeyDown,
     className: `group relative isolate flex ${rowHeight} items-center gap-2 border-b border-line ${
@@ -195,7 +199,7 @@ export function TaskRow({
                 }. Priority ${PRIORITY_LABEL[task.priority]}`
               : `Add a task on ${formatWeekdayLong(date)} ${formatDayNumber(date)}`
           }
-          className={`min-w-0 flex-1 cursor-text truncate rounded-sm py-1 text-left text-[0.9375rem] focus-visible:outline-none ${
+          className={`min-w-0 flex-1 cursor-text truncate rounded-sm py-1 text-left text-[0.9375rem] transition-colors focus-visible:outline-none ${
             task ? '' : 'text-transparent'
           } ${completed ? 'text-done line-through' : 'text-text'}`}
         >
@@ -222,7 +226,7 @@ export function TaskRow({
           onClick={() => planner.removeTask(task.id)}
           aria-label={`Delete "${task.title}"`}
           title={`Delete "${task.title}"`}
-          className="shrink-0 rounded-full p-1 text-muted opacity-0 transition-opacity hover:text-priority-high group-hover:opacity-100 group-focus-within:opacity-100"
+          className="shrink-0 rounded-full p-1 text-muted opacity-0 transition hover:text-priority-high active:scale-90 group-hover:opacity-100 group-focus-within:opacity-100"
         >
           <TrashIcon className="h-4 w-4" />
         </button>
@@ -237,7 +241,7 @@ export function TaskRow({
             completed ? 'not completed' : 'completed'
           }`}
           aria-pressed={completed}
-          className={`shrink-0 rounded-full p-1 transition-opacity ${
+          className={`shrink-0 rounded-full p-1 transition active:scale-90 ${
             completed
               ? 'text-done opacity-100'
               : isMobile

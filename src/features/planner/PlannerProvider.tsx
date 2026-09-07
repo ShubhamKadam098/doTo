@@ -6,6 +6,7 @@ import {
   weekDayKeys,
 } from '../../lib/date'
 import { applyFilter, tasksForDate } from '../../lib/tasks'
+import { withViewTransition } from '../../lib/viewTransition'
 import { useTaskStore } from '../tasks/TaskStoreContext'
 import {
   MIN_ROWS,
@@ -111,11 +112,17 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     [dispatch],
   )
   const renameTask = useCallback(
-    (id: string, title: string) => dispatch({ type: 'rename', id, title }),
+    (id: string, title: string) => {
+      const run = () => dispatch({ type: 'rename', id, title })
+      // An emptied title deletes the task, so the list closes up the same way.
+      if (title.trim().length === 0) withViewTransition(run)
+      else run()
+    },
     [dispatch],
   )
   const removeTask = useCallback(
-    (id: string) => dispatch({ type: 'delete', id }),
+    // Animated so the rows below close the gap rather than jumping into it.
+    (id: string) => withViewTransition(() => dispatch({ type: 'delete', id })),
     [dispatch],
   )
   const duplicateTask = useCallback(

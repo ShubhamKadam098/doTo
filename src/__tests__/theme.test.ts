@@ -47,4 +47,26 @@ describe('theme tokens', () => {
       expect(value, `${name} must be a literal colour`).toMatch(/^#|^oklch|^rgb/)
     }
   })
+
+  /*
+   * `shadcn init` has already overwritten this file's palette once. These
+   * pin the parts a regenerate would quietly drop.
+   */
+  it('keeps one shared motion curve and speed', () => {
+    const block = themeBlock()
+    expect(block).toMatch(/--ease-out:\s*cubic-bezier/)
+    expect(block).toMatch(/--duration-fast:\s*\d+ms/)
+    expect(block).toMatch(/--duration-base:\s*\d+ms/)
+    expect(block).toMatch(/--default-transition-timing-function:\s*var\(--ease-out\)/)
+  })
+
+  it('honours a reduced-motion preference', () => {
+    expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)/)
+  })
+
+  it('keeps the page out of the view transition', () => {
+    // Without this the browser cross-fades a snapshot of the whole document,
+    // which reads as the entire UI flickering on every delete.
+    expect(css).toMatch(/:root\s*\{[^}]*view-transition-name:\s*none/)
+  })
 })

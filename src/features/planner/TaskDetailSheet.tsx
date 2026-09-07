@@ -33,7 +33,7 @@ export function TaskDetailSheet({
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-end bg-black/70 p-3"
+      className="fixed inset-0 z-40 flex items-end bg-black/70 p-3 animate-in fade-in duration-(--duration-fast)"
       onClick={(event) => {
         if (event.target === event.currentTarget) close()
       }}
@@ -50,7 +50,7 @@ export function TaskDetailSheet({
             onClose()
           }
         }}
-        className="w-full rounded-2xl border border-line bg-elevated p-5 pb-7 outline-none"
+        className="w-full rounded-2xl border border-line bg-elevated p-5 pb-7 outline-none animate-in slide-in-from-bottom-4 duration-(--duration-base) ease-(--ease-out)"
       >
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm text-muted">{formatFullDate(task.date)}</p>
