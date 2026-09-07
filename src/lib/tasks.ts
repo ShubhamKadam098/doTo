@@ -145,3 +145,25 @@ export function moveTask(
 
   return fromDate === toDate ? moved : normalizeOrders(moved, [fromDate])
 }
+
+/** Copies a task in beneath the original. The copy always starts uncompleted. */
+export function duplicateTask(tasks: Task[], id: string): Task[] {
+  const target = tasks.find((task) => task.id === id)
+  if (!target) return tasks
+
+  const copy = createTask({
+    title: target.title,
+    date: target.date,
+    priority: target.priority,
+    order: target.order + 1,
+  })
+
+  return normalizeOrders(
+    tasks.map((task) =>
+      task.date === target.date && task.order > target.order
+        ? { ...task, order: task.order + 1 }
+        : task,
+    ).concat(copy),
+    [target.date],
+  )
+}

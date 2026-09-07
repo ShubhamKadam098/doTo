@@ -2,6 +2,7 @@ import { rollover } from '../../lib/rollover'
 import {
   addTask,
   deleteTask,
+  duplicateTask,
   moveTask,
   toggleCompleted,
   updateTask,
@@ -25,6 +26,7 @@ export type TaskAction =
   | { type: 'create'; date: string; title: string; priority?: Priority }
   | { type: 'rename'; id: string; title: string }
   | { type: 'delete'; id: string }
+  | { type: 'duplicate'; id: string }
   | { type: 'toggle'; id: string }
   | { type: 'setPriority'; id: string; priority: Priority }
   | { type: 'move'; id: string; toDate: string; toIndex: number }
@@ -92,6 +94,11 @@ export function taskReducer(state: TaskState, action: TaskAction): TaskState {
 
     case 'delete':
       return commit(state, { tasks: deleteTask(state.tasks, action.id) })
+
+    case 'duplicate': {
+      const tasks = duplicateTask(state.tasks, action.id)
+      return tasks === state.tasks ? state : commit(state, { tasks })
+    }
 
     case 'toggle':
       return commit(state, { tasks: toggleCompleted(state.tasks, action.id) })

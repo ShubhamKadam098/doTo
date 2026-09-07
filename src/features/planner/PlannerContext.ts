@@ -38,6 +38,7 @@ export interface PlannerValue {
   createTask: (date: string, title: string) => void
   renameTask: (id: string, title: string) => void
   removeTask: (id: string) => void
+  duplicateTask: (id: string) => void
   toggleTask: (id: string) => void
   setPriority: (id: string, priority: Priority) => void
   relocateTask: (id: string, toDate: string, toIndex: number) => void

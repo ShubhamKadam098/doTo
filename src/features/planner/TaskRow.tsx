@@ -1,8 +1,14 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { CheckCircleIcon } from '../../components/icons'
+import { CheckCircleIcon, TrashIcon } from '../../components/icons'
 import { PriorityMenu } from '../../components/PriorityMenu'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '../../components/ui/context-menu'
 import { formatWeekdayLong, formatDayNumber } from '../../lib/date'
 import { PRIORITY_BY_KEY, PRIORITY_LABEL } from '../../lib/priority'
 import { usePlanner } from './PlannerContext'
@@ -127,18 +133,20 @@ export function TaskRow({
   const rowHeight = isMobile ? 'h-row-mobile' : 'h-row'
   const completed = task?.completed ?? false
 
-  return (
-    <li
-      ref={setNodeRef}
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-      }}
-      onKeyDown={onRowKeyDown}
-      className={`group relative isolate flex ${rowHeight} items-center gap-2 border-b border-line ${
-        isDragging ? 'z-20 opacity-40' : ''
-      }`}
-    >
+  const rowProps = {
+    ref: setNodeRef,
+    style: {
+      transform: CSS.Transform.toString(transform),
+      transition,
+    },
+    onKeyDown: onRowKeyDown,
+    className: `group relative isolate flex ${rowHeight} items-center gap-2 border-b border-line ${
+      isDragging ? 'z-20 opacity-40' : ''
+    }`,
+  }
+
+  const rowContent = (
+    <>
       {/* Bleeds past the text so the highlight has breathing room without
           indenting titles away from the day header. */}
       <span
@@ -157,6 +165,7 @@ export function TaskRow({
           initial={task?.title ?? ''}
           date={date}
           onCancel={() => planner.focusSlot({ date, row })}
+          onDelete={task ? () => planner.removeTask(task.id) : undefined}
           onCommit={finishEditing}
           onHistory={(direction) => {
             planner.focusSlot({ date, row })
@@ -186,7 +195,9 @@ export function TaskRow({
                 }. Priority ${PRIORITY_LABEL[task.priority]}`
               : `Add a task on ${formatWeekdayLong(date)} ${formatDayNumber(date)}`
           }
-          className={`min-w-0 flex-1 cursor-text truncate rounded-sm py-1 text-left text-[0.9375rem] focus-visible:outline-none ${
+          className={`min-w-0 flex-1 truncate rounded-sm py-1 text-left text-[0.9375rem] focus-visible:outline-none ${
+            isDragging ? 'cursor-grabbing' : 'cursor-text'
+          } ${
             task ? '' : 'text-transparent'
           } ${completed ? 'text-done line-through' : 'text-text'}`}
         >
@@ -201,6 +212,22 @@ export function TaskRow({
           tabIndex={-1}
           dim
         />
+      )}
+
+      {task && !isMobile && (
+        <button
+          type="button"
+          tabIndex={-1}
+          // Keeps focus in the editor: a blur would commit the title and
+          // re-render this button away before the click could land.
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => planner.removeTask(task.id)}
+          aria-label={`Delete "${task.title}"`}
+          title={`Delete "${task.title}"`}
+          className="shrink-0 rounded-full p-1 text-muted opacity-0 transition-opacity hover:text-priority-high group-hover:opacity-100 group-focus-within:opacity-100"
+        >
+          <TrashIcon className="h-4 w-4" />
+        </button>
       )}
 
       {task && !isEditing && (
@@ -223,7 +250,30 @@ export function TaskRow({
           <CheckCircleIcon filled={completed} />
         </button>
       )}
-    </li>
+
+    </>
+  )
+
+  // Blank rows and mobile keep the browser's own menu.
+  if (!task || isMobile) return <li {...rowProps}>{rowContent}</li>
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger render={<li {...rowProps} />}>
+        {rowContent}
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem onClick={() => planner.duplicateTask(task.id)}>
+          Duplicate
+        </ContextMenuItem>
+        <ContextMenuItem
+          variant="destructive"
+          onClick={() => planner.removeTask(task.id)}
+        >
+          Delete
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   )
 }
 
@@ -232,6 +282,8 @@ interface TitleInputProps {
   date: string
   onCommit: (value: string, advance: boolean) => void
   onCancel: () => void
+  /** Absent on blank rows, which have no task to delete yet. */
+  onDelete?: () => void
   /** Only fires from an empty editor, where the browser has nothing to undo. */
   onHistory: (direction: 'undo' | 'redo') => void
 }
@@ -241,6 +293,7 @@ function TitleInput({
   date,
   onCommit,
   onCancel,
+  onDelete,
   onHistory,
 }: TitleInputProps) {
   const [value, setValue] = useState(initial)
@@ -274,6 +327,11 @@ function TitleInput({
           event.preventDefault()
           cancelled.current = true
           onCancel()
+        } else if (modifier && event.key === 'Backspace' && onDelete) {
+          // Deletes outright so the row never has to be un-edited first.
+          event.preventDefault()
+          cancelled.current = true
+          onDelete()
         } else if (modifier && event.key.toLowerCase() === 'z' && value === '') {
           // Enter always leaves the caret in the next editor, so an empty one
           // must not swallow undo. A typed-in editor keeps native text undo.

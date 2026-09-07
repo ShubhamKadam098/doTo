@@ -162,3 +162,42 @@ describe('undo / redo', () => {
     expect(hydrated.future).toEqual([])
   })
 })
+
+describe('duplicate', () => {
+  it('inserts the copy directly below the original', () => {
+    let state = withTasks(['Groceries', 'Laundry'])
+    const id = state.tasks[0].id
+
+    state = taskReducer(state, { type: 'duplicate', id })
+
+    const titles = tasksForDate(state.tasks, '2026-09-01').map((t) => t.title)
+    expect(titles).toEqual(['Groceries', 'Groceries', 'Laundry'])
+  })
+
+  it('copies the title and priority but never the completion', () => {
+    let state = withTasks(['Groceries'])
+    const id = state.tasks[0].id
+    state = taskReducer(state, { type: 'setPriority', id, priority: 'high' })
+    state = taskReducer(state, { type: 'toggle', id })
+
+    state = taskReducer(state, { type: 'duplicate', id })
+
+    const copy = tasksForDate(state.tasks, '2026-09-01')[1]
+    expect(copy.id).not.toBe(id)
+    expect(copy.priority).toBe('high')
+    expect(copy.completed).toBe(false)
+  })
+
+  it('is undoable as a single step', () => {
+    let state = withTasks(['Groceries'])
+    state = taskReducer(state, { type: 'duplicate', id: state.tasks[0].id })
+    state = taskReducer(state, { type: 'undo' })
+
+    expect(state.tasks).toHaveLength(1)
+  })
+
+  it('ignores an unknown id', () => {
+    const state = withTasks(['Groceries'])
+    expect(taskReducer(state, { type: 'duplicate', id: 'nope' })).toBe(state)
+  })
+})

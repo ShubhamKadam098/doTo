@@ -706,3 +706,133 @@ describe('mobile layout', () => {
     expect(storedTasks()).toHaveLength(0)
   })
 })
+
+/* ------------------------------------------------------------------ *
+ * Desktop delete affordances
+ * ------------------------------------------------------------------ */
+
+describe('deleting from a desktop row', () => {
+  it('deletes from the hover trash in one click', async () => {
+    seedStorage([makeTask({ title: 'Groceries', date: TODAY })])
+    const user = userEvent.setup()
+    renderApp()
+
+    await user.click(screen.getByRole('button', { name: 'Delete "Groceries"' }))
+
+    expect(
+      screen.queryByRole('button', { name: rowName('Groceries', TODAY) }),
+    ).not.toBeInTheDocument()
+    expect(storedTasks()).toHaveLength(0)
+  })
+
+  it('keeps the trash reachable while the row is being edited', async () => {
+    seedStorage([makeTask({ title: 'Groceries', date: TODAY })])
+    const user = userEvent.setup()
+    renderApp()
+
+    await user.click(
+      screen.getByRole('button', { name: rowName('Groceries', TODAY) }),
+    )
+    expect(
+      screen.getByRole('textbox', { name: titleInputName(TODAY) }),
+    ).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Delete "Groceries"' }))
+
+    expect(storedTasks()).toHaveLength(0)
+  })
+
+  it('does not pull focus off the editor when the trash is pressed', async () => {
+    seedStorage([makeTask({ title: 'Groceries', date: TODAY })])
+    const user = userEvent.setup()
+    renderApp()
+
+    await user.click(
+      screen.getByRole('button', { name: rowName('Groceries', TODAY) }),
+    )
+    const input = screen.getByRole('textbox', { name: titleInputName(TODAY) })
+
+    // A blur here would commit the title and re-render the button out from
+    // under the pointer, so the click would never land.
+    await user.pointer({
+      target: screen.getByRole('button', { name: 'Delete "Groceries"' }),
+      keys: '[MouseLeft>]',
+    })
+
+    expect(input).toHaveFocus()
+  })
+
+  it('keeps the row trash off mobile, where the sheet owns deletion', () => {
+    seedStorage([makeTask({ title: 'Groceries', date: TODAY })])
+    renderApp({ desktop: false })
+
+    expect(
+      screen.queryByRole('button', { name: 'Delete "Groceries"' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('deletes from the right-click menu', async () => {
+    seedStorage([makeTask({ title: 'Groceries', date: TODAY })])
+    const user = userEvent.setup()
+    renderApp()
+
+    await user.pointer({
+      target: screen.getByRole('button', { name: rowName('Groceries', TODAY) }),
+      keys: '[MouseRight]',
+    })
+    await user.click(
+      within(screen.getByRole('menu')).getByRole('menuitem', {
+        name: 'Delete',
+      }),
+    )
+
+    expect(storedTasks()).toHaveLength(0)
+  })
+
+  it('duplicates from the right-click menu', async () => {
+    seedStorage([makeTask({ title: 'Groceries', date: TODAY })])
+    const user = userEvent.setup()
+    renderApp()
+
+    await user.pointer({
+      target: screen.getByRole('button', { name: rowName('Groceries', TODAY) }),
+      keys: '[MouseRight]',
+    })
+    await user.click(
+      within(screen.getByRole('menu')).getByRole('menuitem', {
+        name: 'Duplicate',
+      }),
+    )
+
+    const stored = storedTasks()
+    expect(stored).toHaveLength(2)
+    expect(stored.map((task) => task.title)).toEqual(['Groceries', 'Groceries'])
+  })
+
+  it('offers no menu on a blank row', async () => {
+    const user = userEvent.setup()
+    renderApp()
+
+    await user.pointer({
+      target: screen.getAllByRole('button', { name: emptyRowName(TODAY) })[0],
+      keys: '[MouseRight]',
+    })
+
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+  })
+
+  it('deletes with Ctrl+Backspace without leaving edit mode first', async () => {
+    seedStorage([makeTask({ title: 'Groceries', date: TODAY })])
+    const user = userEvent.setup()
+    renderApp()
+
+    await user.click(screen.getByRole('button', { name: rowName('Groceries', TODAY) }))
+    expect(
+      screen.getByRole('textbox', { name: titleInputName(TODAY) }),
+    ).toHaveValue('Groceries')
+
+    await user.keyboard('{Control>}{Backspace}{/Control}')
+
+    expect(storedTasks()).toHaveLength(0)
+  })
+})

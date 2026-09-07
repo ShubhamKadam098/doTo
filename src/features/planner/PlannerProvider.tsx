@@ -118,6 +118,10 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     (id: string) => dispatch({ type: 'delete', id }),
     [dispatch],
   )
+  const duplicateTask = useCallback(
+    (id: string) => dispatch({ type: 'duplicate', id }),
+    [dispatch],
+  )
   const toggleTask = useCallback(
     (id: string) => dispatch({ type: 'toggle', id }),
     [dispatch],
@@ -158,6 +162,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       createTask,
       renameTask,
       removeTask,
+      duplicateTask,
       toggleTask,
       setPriority,
       relocateTask,
@@ -184,6 +189,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       createTask,
       renameTask,
       removeTask,
+      duplicateTask,
       toggleTask,
       setPriority,
       relocateTask,
