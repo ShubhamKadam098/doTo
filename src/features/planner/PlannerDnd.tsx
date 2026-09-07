@@ -4,17 +4,32 @@ import {
   PointerSensor,
   TouchSensor,
   closestCenter,
+  pointerWithin,
+  rectIntersection,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
-import { useState, type ReactNode } from 'react'
-import { tasksForDate } from '../../lib/tasks'
+import { useEffect, useState, type ReactNode } from 'react'
 import { usePlanner } from './PlannerContext'
+import { resolveDrop } from './resolveDrop'
 import type { Task } from '../../types/task'
 
-const DAY_PREFIX = 'day:'
+/*
+ * Day columns are droppables that span their whole column, so comparing rect
+ * centres (`closestCenter`) lets a far-away column win over the one actually
+ * under the cursor, which made dragging between days unreliable. Ask what the
+ * pointer is inside first; rows sort ahead of the column that contains them.
+ */
+const collisionDetection: CollisionDetection = (args) => {
+  const underPointer = pointerWithin(args)
+  if (underPointer.length > 0) return underPointer
+
+  const intersecting = rectIntersection(args)
+  return intersecting.length > 0 ? intersecting : closestCenter(args)
+}
 
 export function PlannerDnd({ children }: { children: ReactNode }) {
   const planner = usePlanner()
@@ -28,6 +43,16 @@ export function PlannerDnd({ children }: { children: ReactNode }) {
     }),
   )
 
+  // The pointer roams far from the dragged row, so the held cursor has to be
+  // set on the page rather than on the row itself.
+  useEffect(() => {
+    if (!active) return
+    document.body.dataset.dragging = 'true'
+    return () => {
+      delete document.body.dataset.dragging
+    }
+  }, [active])
+
   const onDragStart = (event: DragStartEvent) => {
     setActive(
       planner.allTasks.find((task) => task.id === event.active.id) ?? null,
@@ -37,41 +62,25 @@ export function PlannerDnd({ children }: { children: ReactNode }) {
   const onDragEnd = (event: DragEndEvent) => {
     setActive(null)
     const { over } = event
-    const dragged = planner.allTasks.find((task) => task.id === event.active.id)
-    if (!over || !dragged) return
+    if (!over) return
 
-    const overId = String(over.id)
+    const draggedId = String(event.active.id)
+    const drop = resolveDrop(planner.allTasks, draggedId, {
+      id: String(over.id),
+      date: over.data.current?.date as string | undefined,
+    })
+    if (!drop) return
 
-    if (overId.startsWith(DAY_PREFIX)) {
-      const toDate = overId.slice(DAY_PREFIX.length)
-      const destination = tasksForDate(planner.allTasks, toDate).filter(
-        (task) => task.id !== dragged.id,
-      )
-      planner.relocateTask(dragged.id, toDate, destination.length)
-      return
-    }
-
-    const target = planner.allTasks.find((task) => task.id === overId)
-    if (!target || target.id === dragged.id) return
-
-    if (target.date === dragged.date) {
-      const list = tasksForDate(planner.allTasks, dragged.date)
-      const toIndex = list.findIndex((task) => task.id === target.id)
-      if (toIndex >= 0) planner.relocateTask(dragged.id, dragged.date, toIndex)
-      return
-    }
-
-    const destination = tasksForDate(planner.allTasks, target.date).filter(
-      (task) => task.id !== dragged.id,
-    )
-    const toIndex = destination.findIndex((task) => task.id === target.id)
-    planner.relocateTask(dragged.id, target.date, Math.max(0, toIndex))
+    planner.relocateTask(draggedId, drop.toDate, drop.toIndex)
+    // Selection is positional, so without this it stays on the row the task
+    // left rather than following it.
+    planner.focusSlot({ date: drop.toDate, row: drop.toIndex })
   }
 
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={collisionDetection}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       onDragCancel={() => setActive(null)}
@@ -79,7 +88,7 @@ export function PlannerDnd({ children }: { children: ReactNode }) {
       {children}
       <DragOverlay dropAnimation={null}>
         {active && (
-          <div className="truncate rounded-md border border-line-strong bg-elevated px-2 py-1.5 text-[0.9375rem] text-text">
+          <div className="cursor-grabbing truncate rounded-md border border-line-strong bg-elevated px-2 py-1.5 text-[0.9375rem] text-text">
             {active.title}
           </div>
         )}

@@ -122,6 +122,15 @@
   [data-disabled] {
     cursor: not-allowed;
   }
+
+  /*
+    A row in flight follows the pointer anywhere on the page, so the held
+    cursor has to outrank whatever the element underneath asks for.
+  */
+  body[data-dragging],
+  body[data-dragging] * {
+    cursor: grabbing !important;
+  }
 }
 
 @layer utilities {

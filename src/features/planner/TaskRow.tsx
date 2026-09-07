@@ -195,9 +195,7 @@ export function TaskRow({
                 }. Priority ${PRIORITY_LABEL[task.priority]}`
               : `Add a task on ${formatWeekdayLong(date)} ${formatDayNumber(date)}`
           }
-          className={`min-w-0 flex-1 truncate rounded-sm py-1 text-left text-[0.9375rem] focus-visible:outline-none ${
-            isDragging ? 'cursor-grabbing' : 'cursor-text'
-          } ${
+          className={`min-w-0 flex-1 cursor-text truncate rounded-sm py-1 text-left text-[0.9375rem] focus-visible:outline-none ${
             task ? '' : 'text-transparent'
           } ${completed ? 'text-done line-through' : 'text-text'}`}
         >
