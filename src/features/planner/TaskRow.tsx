@@ -135,14 +135,23 @@ export function TaskRow({
         transition,
       }}
       onKeyDown={onRowKeyDown}
-      className={`group relative flex ${rowHeight} items-center gap-2 border-b border-line transition-colors ${
-        isEditing
-          ? 'bg-elevated ring-1 ring-accent/45 ring-inset'
-          : isFocused
-            ? 'bg-elevated'
-            : 'hover:bg-elevated/50'
-      } ${isDragging ? 'z-20 opacity-40' : ''}`}
+      className={`group relative isolate flex ${rowHeight} items-center gap-2 border-b border-line ${
+        isDragging ? 'z-20 opacity-40' : ''
+      }`}
     >
+      {/* Bleeds past the text so the highlight has breathing room without
+          indenting titles away from the day header. */}
+      <span
+        aria-hidden="true"
+        className={`pointer-events-none absolute inset-y-0 -inset-x-3 -z-10 rounded-lg transition-colors ${
+          isEditing
+            ? 'bg-elevated ring-1 ring-accent/45 ring-inset'
+            : isFocused
+              ? 'bg-elevated'
+              : 'group-hover:bg-elevated/50'
+        }`}
+      />
+
       {isEditing ? (
         <TitleInput
           initial={task?.title ?? ''}
