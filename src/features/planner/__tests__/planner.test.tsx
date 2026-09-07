@@ -175,6 +175,51 @@ describe('row alignment', () => {
  * ------------------------------------------------------------------ */
 
 describe('creating a task', () => {
+  it('collapses a click on a lower blank row onto the first free row', async () => {
+    const user = userEvent.setup()
+    seedStorage([makeTask({ id: 'a', title: 'Existing', date: TODAY, order: 0 })])
+    renderApp()
+
+    const section = daySection(TODAY)
+    const blanks = within(section).getAllByRole('button', {
+      name: emptyRowName(TODAY),
+    })
+
+    // Click the sixth blank row; the task would be appended at index 1 anyway.
+    await user.click(blanks[5])
+
+    const rows = within(daySection(TODAY)).getAllByRole('listitem')
+    const editor = within(daySection(TODAY)).getByRole('textbox', {
+      name: titleInputName(TODAY),
+    })
+    expect(rows[1]).toContainElement(editor)
+    expect(document.activeElement).toBe(editor)
+  })
+
+  it('lets an empty editor pass undo through to the planner', async () => {
+    const user = userEvent.setup()
+    renderApp()
+
+    await user.click(
+      within(daySection(TODAY)).getAllByRole('button', {
+        name: emptyRowName(TODAY),
+      })[0],
+    )
+    await user.type(
+      within(daySection(TODAY)).getByRole('textbox', {
+        name: titleInputName(TODAY),
+      }),
+      'Only task',
+    )
+    await user.keyboard('{Enter}')
+    expect(storedTasks()).toHaveLength(1)
+
+    // The caret now sits in the next (empty) editor - undo must still land.
+    await user.keyboard('{Control>}z{/Control}')
+    expect(storedTasks()).toHaveLength(0)
+  })
+
+
   it('types a title into an empty row, persists it and advances the caret', async () => {
     const user = userEvent.setup()
     renderApp()
@@ -198,20 +243,25 @@ describe('creating a task', () => {
       }),
     ).toBeInTheDocument()
 
-    // The caret lands on the next row, focused and ready.
-    const focused = activeRow()
-    expect(focused.label).toBe(dayName(TODAY))
-    expect(focused.rowIndex).toBe(1)
-    expect(document.activeElement).toHaveAccessibleName(emptyRowName(TODAY))
+    // The caret lands in the next row's editor, so typing can continue.
+    expect(document.activeElement).toHaveAccessibleName(titleInputName(TODAY))
+    await user.type(document.activeElement as HTMLElement, 'Second one')
+    await user.keyboard('{Enter}')
+    expect(
+      within(daySection(TODAY)).getByRole('button', {
+        name: rowName('Second one', TODAY),
+      }),
+    ).toBeInTheDocument()
 
-    // Only real tasks reach storage - the nine remaining empty rows do not.
+    // Only real tasks reach storage - the remaining empty rows do not.
     const persisted = storedTasks()
-    expect(persisted).toHaveLength(1)
+    expect(persisted).toHaveLength(2)
     expect(persisted[0]).toMatchObject({
       title: 'Write the brief',
       date: TODAY,
       completed: false,
     })
+    expect(persisted[1]).toMatchObject({ title: 'Second one', order: 1 })
   })
 })
 

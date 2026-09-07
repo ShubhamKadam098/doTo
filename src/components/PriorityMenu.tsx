@@ -7,9 +7,16 @@ interface PriorityMenuProps {
   onChange: (priority: Priority) => void
   /** Hides the `none` dot until the row is hovered or focused. */
   dim?: boolean
+  /** Rows pass -1 so the dot does not add a tab stop per task. */
+  tabIndex?: number
 }
 
-export function PriorityMenu({ value, onChange, dim }: PriorityMenuProps) {
+export function PriorityMenu({
+  value,
+  onChange,
+  dim,
+  tabIndex,
+}: PriorityMenuProps) {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -41,6 +48,7 @@ export function PriorityMenu({ value, onChange, dim }: PriorityMenuProps) {
         title={`Priority: ${PRIORITY_LABEL[value]}`}
         aria-haspopup="menu"
         aria-expanded={open}
+        tabIndex={tabIndex}
         onClick={() => setOpen((current) => !current)}
         className={`flex h-5 w-5 items-center justify-center rounded-full transition-opacity ${
           hidden ? 'opacity-0 group-hover:opacity-60 group-focus-within:opacity-60' : 'opacity-100'

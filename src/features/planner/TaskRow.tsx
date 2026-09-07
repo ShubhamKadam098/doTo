@@ -53,7 +53,10 @@ export function TaskRow({
     if (isFocused && !isEditing) titleRef.current?.focus()
   }, [isFocused, isEditing])
 
-  const startEditing = () => planner.focusSlot({ date, row }, true)
+  // A new task is always appended, so editing any blank row collapses onto the
+  // first free one instead of leaving the caret stranded further down.
+  const editRow = task ? row : taskCount
+  const startEditing = () => planner.focusSlot({ date, row: editRow }, true)
 
   const commit = (value: string) => {
     if (task) planner.renameTask(task.id, value)
@@ -61,12 +64,21 @@ export function TaskRow({
   }
 
   const finishEditing = (value: string, advance: boolean) => {
+    const filled = value.trim().length > 0
     commit(value)
+
     if (!advance) {
       planner.focusSlot({ date, row })
       return
     }
-    planner.focusSlot({ date, row: task ? row + 1 : taskCount + 1 })
+    if (!task && !filled) {
+      // Enter on an untouched blank row just leaves edit mode.
+      planner.focusSlot({ date, row })
+      return
+    }
+    // Clearing a title deletes the task, so the row below shifts up into `row`.
+    const nextRow = task ? (filled ? row + 1 : row) : row + 1
+    planner.focusSlot({ date, row: nextRow }, true)
   }
 
   const onRowKeyDown = (event: KeyboardEvent<HTMLElement>) => {
@@ -123,9 +135,13 @@ export function TaskRow({
         transition,
       }}
       onKeyDown={onRowKeyDown}
-      className={`group relative flex ${rowHeight} items-center gap-2 border-b border-line ${
-        isDragging ? 'z-20 opacity-40' : ''
-      }`}
+      className={`group relative flex ${rowHeight} items-center gap-2 border-b border-line transition-colors ${
+        isEditing
+          ? 'bg-elevated ring-1 ring-accent/45 ring-inset'
+          : isFocused
+            ? 'bg-elevated'
+            : 'hover:bg-elevated/50'
+      } ${isDragging ? 'z-20 opacity-40' : ''}`}
     >
       {isEditing ? (
         <TitleInput
@@ -133,6 +149,11 @@ export function TaskRow({
           date={date}
           onCancel={() => planner.focusSlot({ date, row })}
           onCommit={finishEditing}
+          onHistory={(direction) => {
+            planner.focusSlot({ date, row })
+            if (direction === 'undo') planner.undo()
+            else planner.redo()
+          }}
         />
       ) : (
         <button
@@ -156,7 +177,7 @@ export function TaskRow({
                 }. Priority ${PRIORITY_LABEL[task.priority]}`
               : `Add a task on ${formatWeekdayLong(date)} ${formatDayNumber(date)}`
           }
-          className={`min-w-0 flex-1 cursor-text truncate rounded-sm py-1 text-left text-[0.9375rem] ${
+          className={`min-w-0 flex-1 cursor-text truncate rounded-sm py-1 text-left text-[0.9375rem] focus-visible:outline-none ${
             task ? '' : 'text-transparent'
           } ${completed ? 'text-done line-through' : 'text-text'}`}
         >
@@ -168,6 +189,7 @@ export function TaskRow({
         <PriorityMenu
           value={task.priority}
           onChange={(priority) => planner.setPriority(task.id, priority)}
+          tabIndex={-1}
           dim
         />
       )}
@@ -201,9 +223,17 @@ interface TitleInputProps {
   date: string
   onCommit: (value: string, advance: boolean) => void
   onCancel: () => void
+  /** Only fires from an empty editor, where the browser has nothing to undo. */
+  onHistory: (direction: 'undo' | 'redo') => void
 }
 
-function TitleInput({ initial, date, onCommit, onCancel }: TitleInputProps) {
+function TitleInput({
+  initial,
+  date,
+  onCommit,
+  onCancel,
+  onHistory,
+}: TitleInputProps) {
   const [value, setValue] = useState(initial)
   const cancelled = useRef(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -226,6 +256,7 @@ function TitleInput({ initial, date, onCommit, onCancel }: TitleInputProps) {
         onCommit(value, false)
       }}
       onKeyDown={(event) => {
+        const modifier = event.metaKey || event.ctrlKey
         if (event.key === 'Enter') {
           event.preventDefault()
           cancelled.current = true
@@ -234,6 +265,12 @@ function TitleInput({ initial, date, onCommit, onCancel }: TitleInputProps) {
           event.preventDefault()
           cancelled.current = true
           onCancel()
+        } else if (modifier && event.key.toLowerCase() === 'z' && value === '') {
+          // Enter always leaves the caret in the next editor, so an empty one
+          // must not swallow undo. A typed-in editor keeps native text undo.
+          event.preventDefault()
+          cancelled.current = true
+          onHistory(event.shiftKey ? 'redo' : 'undo')
         }
         // Every other key, spaces included, edits the text normally.
         event.stopPropagation()
