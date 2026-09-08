@@ -145,6 +145,9 @@ export function TaskRow({
       viewTransitionName: task && !isDragging ? `task-${task.id}` : undefined,
     },
     onKeyDown: onRowKeyDown,
+    // Dragging picks up anywhere on the row. Held on the title alone, the
+    // padding above and below it and the whole control cluster were dead.
+    ...listeners,
     className: `group relative isolate flex ${rowHeight} items-center gap-2 border-b border-line ${
       isDragging ? 'z-20 opacity-40' : ''
     }`,
@@ -187,7 +190,6 @@ export function TaskRow({
           ref={titleRef}
           type="button"
           {...attributes}
-          {...listeners}
           tabIndex={isTabbable ? 0 : -1}
           onFocus={() => {
             // Keeps keyboard navigation anchored to whatever the user focused.
