@@ -10,7 +10,11 @@ import {
   ContextMenuTrigger,
 } from '../../components/ui/context-menu'
 import { formatWeekdayLong, formatDayNumber } from '../../lib/date'
-import { PRIORITY_BY_KEY, PRIORITY_LABEL } from '../../lib/priority'
+import {
+  PRIORITY_BY_KEY,
+  PRIORITY_LABEL,
+  priorityPill,
+} from '../../lib/priority'
 import { usePlanner } from './PlannerContext'
 import type { Task } from '../../types/task'
 
@@ -206,11 +210,19 @@ export function TaskRow({
                 }. Priority ${PRIORITY_LABEL[task.priority]}`
               : `Add a task on ${formatWeekdayLong(date)} ${formatDayNumber(date)}`
           }
-          className={`min-w-0 flex-1 cursor-text truncate rounded-sm py-1 text-left text-[0.9375rem] transition-colors focus-visible:outline-none ${
+          className={`flex min-w-0 flex-1 cursor-text items-center rounded-sm py-1 text-left text-[0.9375rem] focus-visible:outline-none ${
             task ? '' : 'text-transparent'
-          } ${completed ? 'text-done line-through' : 'text-text'}`}
+          }`}
         >
-          {task?.title ?? ' '}
+          {/* The title wears its own priority: a level fills it, `none` leaves
+              it as plain text. */}
+          <span
+            className={`min-w-0 truncate transition-colors ${
+              task ? priorityPill(task.priority, completed) : ''
+            }`}
+          >
+            {task?.title ?? ' '}
+          </span>
         </button>
       )}
 
@@ -218,7 +230,9 @@ export function TaskRow({
         /* One tight cluster: three `gap-2` siblings spent most of the row's
            width on the space between them rather than on the title. */
         <div className="flex shrink-0 items-center gap-0.5">
-          {!isEditing && (
+          {/* Hover-revealed, so touch never gets an invisible target: mobile
+              sets priority from the detail sheet, as it does deletion. */}
+          {!isMobile && !isEditing && (
             <PriorityMenu
               value={task.priority}
               onChange={(priority) => planner.setPriority(task.id, priority)}

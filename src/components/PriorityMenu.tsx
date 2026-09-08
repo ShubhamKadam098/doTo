@@ -12,7 +12,7 @@ import {
 interface PriorityMenuProps {
   value: Priority
   onChange: (priority: Priority) => void
-  /** Hides the `none` dot until the row is hovered or focused. */
+  /** Hides the dot until the row is hovered or focused, like the trash. */
   dim?: boolean
   /** Rows pass -1 so the dot does not add a tab stop per task. */
   tabIndex?: number
@@ -25,7 +25,9 @@ export function PriorityMenu({
   tabIndex,
 }: PriorityMenuProps) {
   const [open, setOpen] = useState(false)
-  const hidden = dim && value === 'none' && !open
+  // The title already wears its priority, so the trigger is a control rather
+  // than an indicator: it keeps out of the way until the row is reached for.
+  const hidden = dim && !open
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -38,7 +40,7 @@ export function PriorityMenu({
             tabIndex={tabIndex}
             className={`flex h-5 w-5 items-center justify-center rounded-full transition-opacity ${
               hidden
-                ? 'opacity-0 group-hover:opacity-60 group-focus-within:opacity-60'
+                ? 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
                 : 'opacity-100'
             }`}
           >
