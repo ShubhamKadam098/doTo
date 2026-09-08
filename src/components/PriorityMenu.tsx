@@ -1,6 +1,13 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { PRIORITY_DOT, PRIORITY_LABEL } from '../lib/priority'
 import { PRIORITIES, type Priority } from '../types/task'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu'
 
 interface PriorityMenuProps {
   value: Priority
@@ -18,78 +25,54 @@ export function PriorityMenu({
   tabIndex,
 }: PriorityMenuProps) {
   const [open, setOpen] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const onPointerDown = (event: PointerEvent) => {
-      if (!containerRef.current?.contains(event.target as Node)) setOpen(false)
-    }
-    document.addEventListener('pointerdown', onPointerDown)
-    return () => document.removeEventListener('pointerdown', onPointerDown)
-  }, [open])
-
   const hidden = dim && value === 'none' && !open
 
   return (
-    <div
-      ref={containerRef}
-      className="relative flex items-center"
-      onKeyDown={(event) => {
-        if (event.key === 'Escape' && open) {
-          event.stopPropagation()
-          setOpen(false)
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger
+        render={
+          <button
+            type="button"
+            aria-label={`Priority: ${PRIORITY_LABEL[value]}. Change priority`}
+            title={`Priority: ${PRIORITY_LABEL[value]}`}
+            tabIndex={tabIndex}
+            className={`flex h-5 w-5 items-center justify-center rounded-full transition-opacity ${
+              hidden
+                ? 'opacity-0 group-hover:opacity-60 group-focus-within:opacity-60'
+                : 'opacity-100'
+            }`}
+          >
+            <span
+              className={`h-2 w-2 rounded-full ${PRIORITY_DOT[value]}`}
+              aria-hidden="true"
+            />
+          </button>
         }
-      }}
-    >
-      <button
-        type="button"
-        aria-label={`Priority: ${PRIORITY_LABEL[value]}. Change priority`}
-        title={`Priority: ${PRIORITY_LABEL[value]}`}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        tabIndex={tabIndex}
-        onClick={() => setOpen((current) => !current)}
-        className={`flex h-5 w-5 items-center justify-center rounded-full transition-opacity ${
-          hidden ? 'opacity-0 group-hover:opacity-60 group-focus-within:opacity-60' : 'opacity-100'
-        }`}
-      >
-        <span
-          className={`h-2 w-2 rounded-full ${PRIORITY_DOT[value]}`}
-          aria-hidden="true"
-        />
-      </button>
+      />
 
-      {open && (
-        <div
-          role="menu"
-          aria-label="Priority"
-          className="absolute top-6 right-0 z-30 w-32 rounded-lg border border-line bg-elevated py-1"
+      {/* Base UI names the menu after its trigger, so it needs no label. */}
+      <DropdownMenuContent align="end" className="w-32">
+        <DropdownMenuRadioGroup
+          value={value}
+          onValueChange={(next) => onChange(next as Priority)}
         >
           {PRIORITIES.map((priority) => (
-            <button
+            <DropdownMenuRadioItem
               key={priority}
-              type="button"
-              role="menuitemradio"
-              aria-checked={priority === value}
-              onClick={() => {
-                onChange(priority)
-                setOpen(false)
-              }}
-              className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-line ${
-                priority === value ? 'text-text' : 'text-muted'
-              }`}
+              value={priority}
+              // Picking a level is the whole interaction; radio items keep the
+              // menu open by default, which leaves it hanging over the row.
+              closeOnClick
             >
               <span
                 className={`h-2 w-2 shrink-0 rounded-full ${PRIORITY_DOT[priority]}`}
                 aria-hidden="true"
               />
               {PRIORITY_LABEL[priority]}
-              {priority === value && <span aria-hidden="true" className="ml-auto">✓</span>}
-            </button>
+            </DropdownMenuRadioItem>
           ))}
-        </div>
-      )}
-    </div>
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

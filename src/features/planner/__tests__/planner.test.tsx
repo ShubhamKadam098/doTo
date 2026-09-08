@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '../../../App'
@@ -711,41 +711,60 @@ describe('mobile layout', () => {
  * Desktop delete affordances
  * ------------------------------------------------------------------ */
 
+/**
+ * Base UI opens its menus from a pointer sequence that userEvent's click does
+ * not reproduce under jsdom, so the trigger is pressed directly.
+ */
+function openMenu(trigger: HTMLElement): void {
+  fireEvent.pointerDown(trigger, { button: 0, pointerId: 1, isPrimary: true })
+  fireEvent.pointerUp(trigger, { button: 0, pointerId: 1, isPrimary: true })
+  fireEvent.click(trigger)
+}
+
 describe('the priority menu', () => {
-  it('sets a priority from the menu', async () => {
+  it('sets a priority from the menu and dismisses it', async () => {
     seedStorage([makeTask({ title: 'Groceries', date: TODAY })])
     const user = userEvent.setup()
     renderApp()
 
-    await user.click(screen.getByRole('button', { name: /Change priority/ }))
-    const menu = screen.getByRole('menu', { name: 'Priority' })
+    openMenu(screen.getByRole('button', { name: /Change priority/ }))
+    const menu = screen.getByRole('menu')
     await user.click(within(menu).getByRole('menuitemradio', { name: /High/ }))
 
     expect(storedTasks()[0].priority).toBe('high')
-    expect(screen.queryByRole('menu', { name: 'Priority' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+  })
+
+  it('marks the current level as the chosen one', () => {
+    seedStorage([
+      makeTask({ title: 'Groceries', date: TODAY, priority: 'medium' }),
+    ])
+    renderApp()
+
+    openMenu(screen.getByRole('button', { name: /Change priority/ }))
+    const menu = screen.getByRole('menu')
+
+    expect(
+      within(menu).getByRole('menuitemradio', { name: /Medium/ }),
+    ).toHaveAttribute('aria-checked', 'true')
   })
 
   /*
-   * Rows are isolated stacking contexts, so a menu taller than its row falls
-   * behind the rows below and they swallow its clicks. The row lifts itself
-   * while it holds a `[role=menu]`, which is a CSS hook onto this role.
+   * Rows are isolated stacking contexts, so a menu rendered inside one falls
+   * behind the rows below it and they swallow its clicks. Escaping the row
+   * entirely is what stops that, rather than a z-index that has to be kept
+   * ahead of everything else on the page.
    */
-  it('lifts the row holding the open menu above the rows below it', async () => {
+  it('renders the menu outside the row it belongs to', () => {
     seedStorage([
       makeTask({ title: 'Alpha', date: TODAY, order: 0 }),
       makeTask({ title: 'Beta', date: TODAY, order: 1 }),
     ])
-    const user = userEvent.setup()
     renderApp()
 
-    await user.click(
-      screen.getAllByRole('button', { name: /Change priority/ })[0],
-    )
+    openMenu(screen.getAllByRole('button', { name: /Change priority/ })[0])
 
-    const menu = screen.getByRole('menu', { name: 'Priority' })
-    const row = menu.closest('li')!
-    expect(row.className).toContain('has-[[role=menu]]:z-30')
-    expect(within(daySection(TODAY)).getAllByRole('listitem').indexOf(row)).toBe(0)
+    expect(screen.getByRole('menu').closest('li')).toBeNull()
   })
 })
 

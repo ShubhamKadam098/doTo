@@ -148,10 +148,7 @@ export function TaskRow({
     // Dragging picks up anywhere on the row. Held on the title alone, the
     // padding above and below it and the whole control cluster were dead.
     ...listeners,
-    // `isolate` makes every row its own stacking context, so a menu tall
-    // enough to overflow the row falls behind the rows after it and they take
-    // the clicks meant for it. Lift the row while it holds one.
-    className: `group relative isolate flex ${rowHeight} items-center gap-2 border-b border-line has-[[role=menu]]:z-30 ${
+    className: `group relative isolate flex ${rowHeight} items-center gap-2 border-b border-line ${
       isDragging ? 'z-20 opacity-40' : ''
     }`,
   }
