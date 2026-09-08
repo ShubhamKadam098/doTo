@@ -711,6 +711,44 @@ describe('mobile layout', () => {
  * Desktop delete affordances
  * ------------------------------------------------------------------ */
 
+describe('the priority menu', () => {
+  it('sets a priority from the menu', async () => {
+    seedStorage([makeTask({ title: 'Groceries', date: TODAY })])
+    const user = userEvent.setup()
+    renderApp()
+
+    await user.click(screen.getByRole('button', { name: /Change priority/ }))
+    const menu = screen.getByRole('menu', { name: 'Priority' })
+    await user.click(within(menu).getByRole('menuitemradio', { name: /High/ }))
+
+    expect(storedTasks()[0].priority).toBe('high')
+    expect(screen.queryByRole('menu', { name: 'Priority' })).not.toBeInTheDocument()
+  })
+
+  /*
+   * Rows are isolated stacking contexts, so a menu taller than its row falls
+   * behind the rows below and they swallow its clicks. The row lifts itself
+   * while it holds a `[role=menu]`, which is a CSS hook onto this role.
+   */
+  it('lifts the row holding the open menu above the rows below it', async () => {
+    seedStorage([
+      makeTask({ title: 'Alpha', date: TODAY, order: 0 }),
+      makeTask({ title: 'Beta', date: TODAY, order: 1 }),
+    ])
+    const user = userEvent.setup()
+    renderApp()
+
+    await user.click(
+      screen.getAllByRole('button', { name: /Change priority/ })[0],
+    )
+
+    const menu = screen.getByRole('menu', { name: 'Priority' })
+    const row = menu.closest('li')!
+    expect(row.className).toContain('has-[[role=menu]]:z-30')
+    expect(within(daySection(TODAY)).getAllByRole('listitem').indexOf(row)).toBe(0)
+  })
+})
+
 describe('deleting from a desktop row', () => {
   it('deletes from the hover trash in one click', async () => {
     seedStorage([makeTask({ title: 'Groceries', date: TODAY })])
