@@ -725,7 +725,7 @@ describe('deleting from a desktop row', () => {
     expect(storedTasks()).toHaveLength(0)
   })
 
-  it('keeps the trash reachable while the row is being edited', async () => {
+  it('hides the trash while the row is being edited', async () => {
     seedStorage([makeTask({ title: 'Groceries', date: TODAY })])
     const user = userEvent.setup()
     renderApp()
@@ -737,29 +737,31 @@ describe('deleting from a desktop row', () => {
       screen.getByRole('textbox', { name: titleInputName(TODAY) }),
     ).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Delete "Groceries"' }))
-
-    expect(storedTasks()).toHaveLength(0)
+    expect(
+      screen.queryByRole('button', { name: 'Delete "Groceries"' }),
+    ).not.toBeInTheDocument()
   })
 
-  it('does not pull focus off the editor when the trash is pressed', async () => {
-    seedStorage([makeTask({ title: 'Groceries', date: TODAY })])
+  it('deletes another row without disturbing the open editor', async () => {
+    seedStorage([
+      makeTask({ title: 'Alpha', date: TODAY, order: 0 }),
+      makeTask({ title: 'Beta', date: TODAY, order: 1 }),
+    ])
     const user = userEvent.setup()
     renderApp()
 
-    await user.click(
-      screen.getByRole('button', { name: rowName('Groceries', TODAY) }),
-    )
-    const input = screen.getByRole('textbox', { name: titleInputName(TODAY) })
+    await user.click(screen.getByRole('button', { name: rowName('Beta', TODAY) }))
+    await user.keyboard(' edited')
 
-    // A blur here would commit the title and re-render the button out from
-    // under the pointer, so the click would never land.
-    await user.pointer({
-      target: screen.getByRole('button', { name: 'Delete "Groceries"' }),
-      keys: '[MouseLeft>]',
-    })
+    // Pressing the other row's trash must not blur this editor: the commit
+    // that follows would re-render the button out from under the pointer and
+    // the click would never land.
+    await user.click(screen.getByRole('button', { name: 'Delete "Alpha"' }))
 
-    expect(input).toHaveFocus()
+    expect(storedTasks().map((task) => task.title)).toEqual(['Beta'])
+    expect(
+      screen.getByRole('textbox', { name: titleInputName(TODAY) }),
+    ).toHaveValue('Beta edited')
   })
 
   it('carries an open editor along when a task above it is deleted', async () => {

@@ -227,12 +227,12 @@ export function TaskRow({
             />
           )}
 
-          {!isMobile && (
+          {!isMobile && !isEditing && (
             <button
               type="button"
               tabIndex={-1}
-              // Keeps focus in the editor: a blur would commit the title and
-              // re-render this button away before the click could land.
+              // Pressing another row's trash must not blur an open editor: the
+              // commit would re-render this button away before the click landed.
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => planner.removeTask(task.id)}
               aria-label={`Delete "${task.title}"`}
