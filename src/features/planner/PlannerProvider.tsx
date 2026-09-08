@@ -121,9 +121,26 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     [dispatch],
   )
   const removeTask = useCallback(
-    // Animated so the rows below close the gap rather than jumping into it.
-    (id: string) => withViewTransition(() => dispatch({ type: 'delete', id })),
-    [dispatch],
+    (id: string) => {
+      // Focus is a position, so losing a row above it would otherwise leave an
+      // open editor pointing at whatever slid into its place.
+      const removedRow = tasksForDate(state.tasks, focus?.date ?? '').findIndex(
+        (task) => task.id === id,
+      )
+
+      // Animated so the rows below close the gap rather than jumping into it.
+      withViewTransition(() => {
+        dispatch({ type: 'delete', id })
+        if (removedRow >= 0) {
+          setFocus((current) =>
+            current && current.row > removedRow
+              ? { ...current, row: current.row - 1 }
+              : current,
+          )
+        }
+      })
+    },
+    [dispatch, focus?.date, state.tasks],
   )
   const duplicateTask = useCallback(
     (id: string) => dispatch({ type: 'duplicate', id }),

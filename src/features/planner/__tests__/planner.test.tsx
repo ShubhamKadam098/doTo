@@ -762,6 +762,31 @@ describe('deleting from a desktop row', () => {
     expect(input).toHaveFocus()
   })
 
+  it('carries an open editor along when a task above it is deleted', async () => {
+    seedStorage([
+      makeTask({ title: 'Alpha', date: TODAY, order: 0 }),
+      makeTask({ title: 'Beta', date: TODAY, order: 1 }),
+      makeTask({ title: 'Gamma', date: TODAY, order: 2 }),
+    ])
+    const user = userEvent.setup()
+    renderApp()
+
+    await user.click(screen.getByRole('button', { name: rowName('Gamma', TODAY) }))
+    expect(
+      screen.getByRole('textbox', { name: titleInputName(TODAY) }),
+    ).toHaveValue('Gamma')
+
+    await user.click(screen.getByRole('button', { name: 'Delete "Alpha"' }))
+
+    // Gamma is a row higher now; the editor should have gone up with it
+    // rather than staying put and picking up whatever landed in its place.
+    const input = screen.getByRole('textbox', { name: titleInputName(TODAY) })
+    expect(input).toHaveValue('Gamma')
+
+    const rows = within(daySection(TODAY)).getAllByRole('listitem')
+    expect(rows.indexOf(input.closest('li')!)).toBe(1)
+  })
+
   it('keeps the row trash off mobile, where the sheet owns deletion', () => {
     seedStorage([makeTask({ title: 'Groceries', date: TODAY })])
     renderApp({ desktop: false })
