@@ -214,50 +214,56 @@ export function TaskRow({
         </button>
       )}
 
-      {task && !isEditing && (
-        <PriorityMenu
-          value={task.priority}
-          onChange={(priority) => planner.setPriority(task.id, priority)}
-          tabIndex={-1}
-          dim
-        />
-      )}
+      {task && (
+        /* One tight cluster: three `gap-2` siblings spent most of the row's
+           width on the space between them rather than on the title. */
+        <div className="flex shrink-0 items-center gap-0.5">
+          {!isEditing && (
+            <PriorityMenu
+              value={task.priority}
+              onChange={(priority) => planner.setPriority(task.id, priority)}
+              tabIndex={-1}
+              dim
+            />
+          )}
 
-      {task && !isMobile && (
-        <button
-          type="button"
-          tabIndex={-1}
-          // Keeps focus in the editor: a blur would commit the title and
-          // re-render this button away before the click could land.
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => planner.removeTask(task.id)}
-          aria-label={`Delete "${task.title}"`}
-          title={`Delete "${task.title}"`}
-          className="shrink-0 rounded-full p-1 text-muted opacity-0 transition hover:text-priority-high active:scale-90 group-hover:opacity-100 group-focus-within:opacity-100"
-        >
-          <TrashIcon className="h-4 w-4" />
-        </button>
-      )}
+          {!isMobile && (
+            <button
+              type="button"
+              tabIndex={-1}
+              // Keeps focus in the editor: a blur would commit the title and
+              // re-render this button away before the click could land.
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => planner.removeTask(task.id)}
+              aria-label={`Delete "${task.title}"`}
+              title={`Delete "${task.title}"`}
+              className="shrink-0 rounded-full p-1 text-muted opacity-0 transition hover:text-priority-high active:scale-90 group-hover:opacity-100 group-focus-within:opacity-100"
+            >
+              <TrashIcon className="h-4 w-4" />
+            </button>
+          )}
 
-      {task && !isEditing && (
-        <button
-          type="button"
-          tabIndex={-1}
-          onClick={() => planner.toggleTask(task.id)}
-          aria-label={`Mark "${task.title}" as ${
-            completed ? 'not completed' : 'completed'
-          }`}
-          aria-pressed={completed}
-          className={`shrink-0 rounded-full p-1 transition active:scale-90 ${
-            completed
-              ? 'text-done opacity-100'
-              : isMobile
-                ? 'text-muted opacity-100'
-                : 'text-muted opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
-          }`}
-        >
-          <CheckCircleIcon filled={completed} />
-        </button>
+          {!isEditing && (
+            <button
+              type="button"
+              tabIndex={-1}
+              onClick={() => planner.toggleTask(task.id)}
+              aria-label={`Mark "${task.title}" as ${
+                completed ? 'not completed' : 'completed'
+              }`}
+              aria-pressed={completed}
+              className={`shrink-0 rounded-full p-1 transition active:scale-90 ${
+                completed
+                  ? 'text-done opacity-100'
+                  : isMobile
+                    ? 'text-muted opacity-100'
+                    : 'text-muted opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
+              }`}
+            >
+              <CheckCircleIcon filled={completed} />
+            </button>
+          )}
+        </div>
       )}
 
     </>
