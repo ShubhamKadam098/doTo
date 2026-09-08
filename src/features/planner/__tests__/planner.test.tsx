@@ -72,6 +72,14 @@ function renderApp({ desktop = true } = {}) {
 
 const TODAY = todayKey()
 const WEEK_START = startOfWeekKey(TODAY)
+/*
+ * Row-alignment fixtures live in next week: seeding a past day would have the
+ * rollover carry those tasks onto today before the first assertion runs.
+ */
+const NEXT_WEEK = addWeeksToKey(WEEK_START, 1)
+const NEXT_MONDAY = NEXT_WEEK
+const NEXT_SATURDAY = addDaysToKey(NEXT_WEEK, 5)
+const NEXT_SUNDAY = addDaysToKey(NEXT_WEEK, 6)
 
 function dayName(date: string): string {
   return `${formatWeekdayLong(date)} ${formatDayNumber(date)}`
@@ -143,30 +151,55 @@ afterEach(() => {
  * ------------------------------------------------------------------ */
 
 describe('row alignment', () => {
-  it('renders ten rows in every day column when there are no tasks', () => {
+  it('splits the weekend column so it ends level with the weekdays', () => {
     renderApp()
 
-    const counts = rowCounts()
-    expect(counts).toHaveLength(7)
-    expect(counts).toEqual(Array<number>(7).fill(10))
+    // Ten weekday rows, then Saturday's five and the four Sunday has left
+    // once Sunday's own header has taken a row of the shared column.
+    expect(rowCounts()).toEqual([10, 10, 10, 10, 10, 5, 4])
   })
 
-  it('grows every column to the busiest day plus one', () => {
+  it('grows every column to the busiest weekday plus one', async () => {
     seedStorage(
       Array.from({ length: 12 }, (_, index) =>
-        makeTask({ title: `Task ${index + 1}`, date: TODAY, order: index }),
+        makeTask({ title: `Task ${index + 1}`, date: NEXT_MONDAY, order: index }),
       ),
     )
-
+    const user = userEvent.setup()
     renderApp()
+    await user.click(screen.getByRole('button', { name: 'Next week' }))
 
-    const busy = daySection(TODAY)
+    const busy = daySection(NEXT_MONDAY)
     expect(within(busy).getAllByRole('listitem')).toHaveLength(13)
 
-    const counts = rowCounts()
-    expect(counts).toHaveLength(7)
-    expect(counts).toEqual(Array<number>(7).fill(13))
-    expect(new Set(counts).size).toBe(1)
+    // Saturday keeps its floor and Sunday absorbs the extra height.
+    expect(rowCounts()).toEqual([13, 13, 13, 13, 13, 5, 7])
+  })
+
+  it('grows the week when the weekend outgrows its half of the column', async () => {
+    seedStorage([
+      ...Array.from({ length: 7 }, (_, index) =>
+        makeTask({
+          title: `Sat ${index + 1}`,
+          date: NEXT_SATURDAY,
+          order: index,
+        }),
+      ),
+      ...Array.from({ length: 4 }, (_, index) =>
+        makeTask({
+          title: `Sun ${index + 1}`,
+          date: NEXT_SUNDAY,
+          order: index,
+        }),
+      ),
+    ])
+    const user = userEvent.setup()
+    renderApp()
+    await user.click(screen.getByRole('button', { name: 'Next week' }))
+
+    // Saturday needs eight rows and Sunday five, so with Sunday's header the
+    // weekdays stretch to fourteen to keep the bottom edge straight.
+    expect(rowCounts()).toEqual([14, 14, 14, 14, 14, 8, 5])
   })
 })
 
@@ -185,8 +218,8 @@ describe('creating a task', () => {
       name: emptyRowName(TODAY),
     })
 
-    // Click the sixth blank row; the task would be appended at index 1 anyway.
-    await user.click(blanks[5])
+    // Click the last blank row; the task would be appended at index 1 anyway.
+    await user.click(blanks[blanks.length - 1])
 
     const rows = within(daySection(TODAY)).getAllByRole('listitem')
     const editor = within(daySection(TODAY)).getByRole('textbox', {
@@ -228,7 +261,10 @@ describe('creating a task', () => {
     const emptyRows = within(section).getAllByRole('button', {
       name: emptyRowName(TODAY),
     })
-    expect(emptyRows).toHaveLength(10)
+    // Every row in the column starts blank, however tall the column is.
+    expect(emptyRows).toHaveLength(
+      within(section).getAllByRole('listitem').length,
+    )
 
     await user.click(emptyRows[0])
     const input = within(section).getByRole('textbox', {

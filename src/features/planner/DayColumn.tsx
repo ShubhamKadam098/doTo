@@ -10,16 +10,21 @@ import type { DayModel } from './PlannerContext'
 
 interface DayColumnProps {
   day: DayModel
-  rowCount: number
+  /**
+   * Sunday sits under Saturday rather than at the top of a column of its own,
+   * so its header stands in one row of the shared grid instead of clearing
+   * space above it.
+   */
+  stacked?: boolean
 }
 
-export function DayColumn({ day, rowCount }: DayColumnProps) {
+export function DayColumn({ day, stacked = false }: DayColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: `day:${day.date}`,
     data: { date: day.date },
   })
 
-  const slots = Array.from({ length: rowCount }, (_, index) => index)
+  const slots = Array.from({ length: day.rows }, (_, index) => index)
 
   return (
     <section
@@ -27,9 +32,9 @@ export function DayColumn({ day, rowCount }: DayColumnProps) {
       className="flex min-w-0 flex-col"
     >
       <header
-        className={`flex items-baseline justify-between gap-2 border-b pb-2 ${
-          day.isToday ? 'border-accent' : 'border-line-strong'
-        }`}
+        className={`flex items-baseline justify-between gap-2 border-b ${
+          stacked ? 'h-row pt-2' : 'pb-2'
+        } ${day.isToday ? 'border-accent' : 'border-line-strong'}`}
       >
         <h2
           className={`truncate text-[1.0625rem] font-bold tracking-tight ${

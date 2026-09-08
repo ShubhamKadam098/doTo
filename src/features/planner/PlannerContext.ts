@@ -10,14 +10,14 @@ export interface DayModel {
   date: string
   tasks: Task[]
   isToday: boolean
+  /** Rows this day renders. Weekdays share one height; the weekend splits it. */
+  rows: number
 }
 
 export interface PlannerValue {
   today: string
   weekStart: string
   days: DayModel[]
-  /** Visible rows per day. Identical for every column, minimum 10. */
-  rowCount: number
   filter: Filter
   focus: FocusTarget | null
   /** Row that owns the tab stop before the user has focused anything. */
@@ -63,4 +63,8 @@ export function usePlanner(): PlannerValue {
   return value
 }
 
+/** Row floor for a full-height weekday column. */
 export const MIN_ROWS = 10
+
+/** Row floor for Saturday, which shares its column with Sunday. */
+export const WEEKEND_MIN_ROWS = 5

@@ -16,6 +16,7 @@ import { withViewTransition } from '../../lib/viewTransition'
 import { useTaskStore } from '../tasks/TaskStoreContext'
 import {
   MIN_ROWS,
+  WEEKEND_MIN_ROWS,
   PlannerContext,
   type DayModel,
   type FocusTarget,
@@ -32,22 +33,37 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   const [focus, setFocus] = useState<FocusTarget | null>(null)
   const [editing, setEditing] = useState(false)
 
-  const days = useMemo<DayModel[]>(
-    () =>
-      weekDayKeys(weekStart).map((date) => ({
-        date,
-        tasks: applyFilter(tasksForDate(state.tasks, date), filter),
-        isToday: date === today,
-      })),
-    [weekStart, state.tasks, filter, today],
-  )
+  const days = useMemo<DayModel[]>(() => {
+    const week = weekDayKeys(weekStart).map((date) => ({
+      date,
+      tasks: applyFilter(tasksForDate(state.tasks, date), filter),
+      isToday: date === today,
+    }))
 
-  // The alignment rule: every column renders the same number of rows, grown
-  // from the busiest visible day and never below the ten-row floor.
-  const rowCount = useMemo(
-    () => Math.max(MIN_ROWS, ...days.map((day) => day.tasks.length + 1)),
-    [days],
-  )
+    const weekdays = week.slice(0, 5)
+    const [saturday, sunday] = week.slice(5)
+
+    /*
+     * The alignment rule: Monday to Friday all render the same number of rows,
+     * grown from the busiest weekday and never below the ten-row floor.
+     * Saturday and Sunday stack inside the sixth column, so their rows plus
+     * the one Sunday's header stands in for have to add up to that height.
+     */
+    const saturdayRows = Math.max(WEEKEND_MIN_ROWS, saturday.tasks.length + 1)
+    const rowCount = Math.max(
+      MIN_ROWS,
+      ...weekdays.map((day) => day.tasks.length + 1),
+      saturdayRows + sunday.tasks.length + 2,
+    )
+
+    // Saturday takes the rows it needs; Sunday absorbs the rest so the column
+    // ends level with the weekdays beside it.
+    return [
+      ...weekdays.map((day) => ({ ...day, rows: rowCount })),
+      { ...saturday, rows: saturdayRows },
+      { ...sunday, rows: rowCount - saturdayRows - 1 },
+    ]
+  }, [weekStart, state.tasks, filter, today])
 
   // Keeps one row tabbable so the grid is reachable with the Tab key.
   const defaultFocus = useMemo<FocusTarget>(
@@ -86,12 +102,17 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
           days.length - 1,
           Math.max(0, (dayIndex === -1 ? 0 : dayIndex) + dayDelta),
         )
-        const nextRow = Math.min(rowCount - 1, Math.max(0, base.row + rowDelta))
-        return { date: days[nextDayIndex].date, row: nextRow }
+        // Each day owns its height, so crossing into the weekend clamps.
+        const nextDay = days[nextDayIndex]
+        const nextRow = Math.min(
+          nextDay.rows - 1,
+          Math.max(0, base.row + rowDelta),
+        )
+        return { date: nextDay.date, row: nextRow }
       })
       setEditing(false)
     },
-    [days, rowCount, weekStart],
+    [days, weekStart],
   )
 
   const shiftWeek = useCallback((delta: number) => {
@@ -185,7 +206,6 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       today,
       weekStart,
       days,
-      rowCount,
       filter,
       focus,
       defaultFocus,
@@ -216,7 +236,6 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       today,
       weekStart,
       days,
-      rowCount,
       filter,
       focus,
       defaultFocus,
