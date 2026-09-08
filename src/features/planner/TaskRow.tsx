@@ -65,6 +65,7 @@ export function TaskRow({
   const startEditing = () => planner.focusSlot({ date, row: editRow }, true)
 
   const commit = (value: string) => {
+    planner.writeDraft(null)
     if (task) planner.renameTask(task.id, value)
     else if (value.trim()) planner.createTask(date, value)
   }
@@ -166,9 +167,13 @@ export function TaskRow({
 
       {isEditing ? (
         <TitleInput
-          initial={task?.title ?? ''}
+          initial={planner.readDraft() ?? task?.title ?? ''}
           date={date}
-          onCancel={() => planner.focusSlot({ date, row })}
+          onDraft={planner.writeDraft}
+          onCancel={() => {
+            planner.writeDraft(null)
+            planner.focusSlot({ date, row })
+          }}
           onDelete={task ? () => planner.removeTask(task.id) : undefined}
           onCommit={finishEditing}
           onHistory={(direction) => {
@@ -284,6 +289,8 @@ interface TitleInputProps {
   date: string
   onCommit: (value: string, advance: boolean) => void
   onCancel: () => void
+  /** Records each keystroke so an interrupted edit can be picked back up. */
+  onDraft: (value: string | null) => void
   /** Absent on blank rows, which have no task to delete yet. */
   onDelete?: () => void
   /** Only fires from an empty editor, where the browser has nothing to undo. */
@@ -296,6 +303,7 @@ function TitleInput({
   onCommit,
   onCancel,
   onDelete,
+  onDraft,
   onHistory,
 }: TitleInputProps) {
   const [value, setValue] = useState(initial)
@@ -314,7 +322,10 @@ function TitleInput({
       ref={inputRef}
       value={value}
       aria-label={`Task title for ${formatWeekdayLong(date)} ${formatDayNumber(date)}`}
-      onChange={(event) => setValue(event.target.value)}
+      onChange={(event) => {
+        setValue(event.target.value)
+        onDraft(event.target.value)
+      }}
       onBlur={() => {
         if (cancelled.current) return
         onCommit(value, false)

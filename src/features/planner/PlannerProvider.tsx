@@ -1,4 +1,10 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import {
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 import {
   addWeeksToKey,
   startOfWeekKey,
@@ -51,6 +57,17 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     }),
     [days, today],
   )
+
+  /*
+   * A blank row is identified by its position, so deleting a task above one
+   * renumbers it and React rebuilds the editor from scratch. Keeping the text
+   * out here means the rebuilt editor picks up where the old one left off.
+   */
+  const draftRef = useRef<string | null>(null)
+  const readDraft = useCallback(() => draftRef.current, [])
+  const writeDraft = useCallback((value: string | null) => {
+    draftRef.current = value
+  }, [])
 
   const focusSlot = useCallback(
     (target: FocusTarget | null, startEditing = false) => {
@@ -183,6 +200,8 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       focusSlot,
       setEditing,
       moveFocus,
+      readDraft,
+      writeDraft,
       createTask,
       renameTask,
       removeTask,
@@ -210,6 +229,8 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       revealTask,
       focusSlot,
       moveFocus,
+      readDraft,
+      writeDraft,
       createTask,
       renameTask,
       removeTask,

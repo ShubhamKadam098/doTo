@@ -787,6 +787,46 @@ describe('deleting from a desktop row', () => {
     expect(rows.indexOf(input.closest('li')!)).toBe(1)
   })
 
+  it('keeps typed-but-uncommitted text when a task above is deleted', async () => {
+    seedStorage([
+      makeTask({ title: 'Alpha', date: TODAY, order: 0 }),
+      makeTask({ title: 'Beta', date: TODAY, order: 1 }),
+      makeTask({ title: 'Gamma', date: TODAY, order: 2 }),
+    ])
+    const user = userEvent.setup()
+    renderApp()
+
+    await user.click(screen.getByRole('button', { name: rowName('Gamma', TODAY) }))
+    await user.keyboard(' rewritten')
+    expect(
+      screen.getByRole('textbox', { name: titleInputName(TODAY) }),
+    ).toHaveValue('Gamma rewritten')
+
+    await user.click(screen.getByRole('button', { name: 'Delete "Alpha"' }))
+
+    expect(
+      screen.getByRole('textbox', { name: titleInputName(TODAY) }),
+    ).toHaveValue('Gamma rewritten')
+  })
+
+  it('keeps a half-typed new task when a task above is deleted', async () => {
+    seedStorage([makeTask({ title: 'Alpha', date: TODAY, order: 0 })])
+    const user = userEvent.setup()
+    renderApp()
+
+    await user.click(screen.getAllByRole('button', { name: emptyRowName(TODAY) })[0])
+    await user.keyboard('Brand new')
+    expect(
+      screen.getByRole('textbox', { name: titleInputName(TODAY) }),
+    ).toHaveValue('Brand new')
+
+    await user.click(screen.getByRole('button', { name: 'Delete "Alpha"' }))
+
+    expect(
+      screen.getByRole('textbox', { name: titleInputName(TODAY) }),
+    ).toHaveValue('Brand new')
+  })
+
   it('keeps the row trash off mobile, where the sheet owns deletion', () => {
     seedStorage([makeTask({ title: 'Groceries', date: TODAY })])
     renderApp({ desktop: false })

@@ -35,6 +35,13 @@ export interface PlannerValue {
   setEditing: (editing: boolean) => void
   moveFocus: (rowDelta: number, dayDelta: number) => void
 
+  /**
+   * Text typed into the open editor but not yet committed. Held outside the
+   * row so an edit survives the row being torn down and rebuilt underneath it.
+   */
+  readDraft: () => string | null
+  writeDraft: (value: string | null) => void
+
   createTask: (date: string, title: string) => void
   renameTask: (id: string, title: string) => void
   removeTask: (id: string) => void
