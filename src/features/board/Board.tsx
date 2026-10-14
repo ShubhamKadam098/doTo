@@ -8,7 +8,12 @@ import { BoardCard } from './BoardCard'
 import { BoardColumn } from './BoardColumn'
 import { BoardDnd } from './BoardDnd'
 import { MobileBoard } from './MobileBoard'
-import { boardColumn, columnIndexFor } from './boardModel'
+import {
+  boardColumn,
+  columnIndexFor,
+  previewColumns,
+  type BoardPreview,
+} from './boardModel'
 
 /** The visible week's tasks as four status columns. */
 export function Board({ isDesktop }: { isDesktop: boolean }) {
@@ -16,6 +21,7 @@ export function Board({ isDesktop }: { isDesktop: boolean }) {
   const [focusId, setFocusId] = useState<string | null>(null)
   const [mobileIndex, setMobileIndex] = useState(0)
   const [detailId, setDetailId] = useState<string | null>(null)
+  const [preview, setPreview] = useState<BoardPreview | null>(null)
   const detail = planner.allTasks.find((task) => task.id === detailId) ?? null
 
   const dates = useMemo(
@@ -30,6 +36,8 @@ export function Board({ isDesktop }: { isDesktop: boolean }) {
       })),
     [planner.allTasks, dates],
   )
+  // What is drawn: the stored columns, plus a card mid-drag into another one.
+  const shown = useMemo(() => previewColumns(columns, preview), [columns, preview])
 
   // New cards land on today when it is in view, else on the week's Monday.
   const addDate = dates.has(planner.today) ? planner.today : planner.weekStart
@@ -147,7 +155,6 @@ export function Board({ isDesktop }: { isDesktop: boolean }) {
     <BoardCard
       key={task.id}
       task={task}
-      today={planner.today}
       isFocused={focusId === task.id && detailId === null}
       isTabbable={tabId === task.id}
       onFocus={() => setFocusId(task.id)}
@@ -159,10 +166,10 @@ export function Board({ isDesktop }: { isDesktop: boolean }) {
   )
 
   return (
-    <BoardDnd dates={dates}>
+    <BoardDnd dates={dates} columns={shown} onPreview={setPreview}>
       {isDesktop ? (
-        <div className="grid grid-cols-4 gap-6 px-10 pb-24">
-          {columns.map(({ status, tasks }) => (
+        <div className="grid flex-1 grid-cols-4 gap-x-6 px-6 pb-10 sm:px-10 lg:gap-x-8">
+          {shown.map(({ status, tasks }) => (
             <BoardColumn
               key={status}
               status={status}
@@ -176,7 +183,7 @@ export function Board({ isDesktop }: { isDesktop: boolean }) {
         </div>
       ) : (
         <MobileBoard
-          columns={columns}
+          columns={shown}
           index={mobileIndex}
           onIndexChange={setMobileIndex}
           renderCard={renderCard}

@@ -54,7 +54,7 @@ export function Planner() {
   )
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <a
         href="#planner"
         className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-elevated focus:px-3 focus:py-2"
@@ -64,7 +64,8 @@ export function Planner() {
 
       <PlannerHeader onOpenSearch={() => setSearchOpen(true)} />
 
-      <main id="planner">
+      {/* Fills the window so board columns can run to the bottom of it. */}
+      <main id="planner" className="flex flex-1 flex-col">
         {planner.view === 'board' ? (
           <>
             <h2 className="sr-only">

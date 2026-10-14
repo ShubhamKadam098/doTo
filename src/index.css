@@ -16,6 +16,12 @@
   --color-priority-medium: #d29922;
   --color-priority-high: #f85149;
 
+  /* Board columns. Kept off the priority hues so a pill never reads as both. */
+  --color-status-todo: #9a9aa2;
+  --color-status-progress: #58a6ff;
+  --color-status-waiting: #a371f7;
+  --color-status-done: #3fb9a0;
+
   /* One curve and two speeds, so everything in the app moves alike. */
   --ease-out: cubic-bezier(0.2, 0, 0, 1);
   --duration-fast: 120ms;

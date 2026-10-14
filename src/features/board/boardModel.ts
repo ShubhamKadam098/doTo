@@ -89,3 +89,37 @@ export function resolveBoardDrop(
     toIndex: columnIndexFor(tasks, target.status, dates, activeId, visibleIndex),
   }
 }
+
+/** Where a card being dragged into another column would land, mid-drag. */
+export interface BoardPreview {
+  id: string
+  status: BoardStatus
+  /** Position among that column's visible cards. */
+  index: number
+}
+
+/**
+ * The columns as they look mid-drag: the dragged card lifted out of its own
+ * column and shown at its landing place in another, so the cards there part
+ * around it. Nothing is stored until the drop.
+ */
+export function previewColumns<C extends { status: BoardStatus; tasks: Task[] }>(
+  columns: C[],
+  preview: BoardPreview | null,
+): C[] {
+  if (!preview) return columns
+  const moving = columns
+    .flatMap((column) => column.tasks)
+    .find((task) => task.id === preview.id)
+  if (!moving) return columns
+
+  return columns.map((column) => {
+    const tasks = column.tasks.filter((task) => task.id !== preview.id)
+    if (column.status === preview.status) {
+      const index = Math.max(0, Math.min(preview.index, tasks.length))
+      // Wears the column it is shown in, so drop targeting and its look agree.
+      tasks.splice(index, 0, { ...moving, status: preview.status })
+    }
+    return { ...column, tasks }
+  })
+}

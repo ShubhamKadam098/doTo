@@ -1,11 +1,12 @@
-import { useDroppable } from '@dnd-kit/core'
+import { useDndContext, useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import type { ReactNode } from 'react'
-import { STATUS_LABEL } from '../../lib/status'
+import { STATUS_LABEL, STATUS_RULE, STATUS_TEXT } from '../../lib/status'
 import type { BoardStatus } from '../../types/task'
 import { AddCard } from './AddCard'
 import { COLUMN_PREFIX } from './boardModel'
 
+/** One status as a column of ruled rows, headed like a day in the week. */
 export function BoardColumn({
   status,
   count,
@@ -21,28 +22,39 @@ export function BoardColumn({
   children: ReactNode
 }) {
   const label = STATUS_LABEL[status]
-  const { setNodeRef, isOver } = useDroppable({ id: `${COLUMN_PREFIX}${status}` })
+  const id = `${COLUMN_PREFIX}${status}`
+  const { setNodeRef } = useDroppable({ id })
+  const { over } = useDndContext()
+  // A card under the pointer is the drop target, not the column, so light
+  // the column the card would land in either way.
+  const isTarget =
+    over !== null && (over.id === id || over.data.current?.status === status)
+
   return (
     <section
       ref={setNodeRef}
       aria-label={label}
-      className={`flex min-w-0 flex-col ${isOver ? 'rounded-lg bg-elevated/40' : ''}`}
+      // Bleeds past the text so the drop wash never sits flush against it, and
+      // stretches to the bottom of the window so the whole column lights up.
+      className={`-mx-3 -mt-3 flex min-h-80 min-w-0 flex-1 flex-col rounded-xl px-3 pt-3 pb-3 transition-colors ${
+        isTarget ? 'bg-elevated/60' : ''
+      }`}
     >
-      <header className="flex items-baseline justify-between border-b border-line-strong pb-2">
-        <h2 className="text-[1.0625rem] font-bold tracking-tight">{label}</h2>
-        <span className="text-sm text-muted">{count}</span>
+      <header
+        className={`flex items-baseline justify-between gap-2 border-b pb-2 ${STATUS_RULE[status]}`}
+      >
+        <h2
+          className={`truncate text-[1.0625rem] font-bold tracking-tight ${STATUS_TEXT[status]}`}
+        >
+          {label}
+        </h2>
+        <span className="shrink-0 text-[0.9375rem] text-muted">{count}</span>
       </header>
+
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-        <ul className="flex flex-col gap-2 pt-3">
-          {children}
-          {count === 0 && (
-            <li className="px-3 py-2 text-sm text-muted">Nothing here</li>
-          )}
-        </ul>
+        <ul className="min-w-0">{children}</ul>
       </SortableContext>
-      <div className="pt-2">
-        <AddCard label={label} onAdd={onAdd} />
-      </div>
+      <AddCard label={label} onAdd={onAdd} />
     </section>
   )
 }

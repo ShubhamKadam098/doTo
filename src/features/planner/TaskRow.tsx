@@ -11,7 +11,7 @@ import {
   ContextMenuTrigger,
 } from '../../components/ui/context-menu'
 import { formatWeekdayLong, formatDayNumber } from '../../lib/date'
-import { STATUS_LABEL, showsStatusPill } from '../../lib/status'
+import { STATUS_LABEL, STATUS_PILL, showsStatusPill } from '../../lib/status'
 import {
   PRIORITY_BY_KEY,
   PRIORITY_LABEL,
@@ -236,7 +236,11 @@ export function TaskRow({
             {task?.title ?? ' '}
           </span>
           {task && showsStatusPill(task.status) && (
-            <span className="ml-2.5 shrink-0 rounded-full border border-line-strong px-1.5 py-px text-[0.6875rem] text-muted">
+            <span
+              className={`ml-2.5 shrink-0 rounded-full border px-1.5 py-px text-[0.6875rem] ${
+                STATUS_PILL[task.status]
+              }`}
+            >
               {STATUS_LABEL[task.status]}
             </span>
           )}

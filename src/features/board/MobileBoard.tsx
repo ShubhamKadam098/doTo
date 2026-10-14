@@ -1,6 +1,6 @@
 import { useDroppable } from '@dnd-kit/core'
 import { useRef, type ReactNode } from 'react'
-import { STATUS_LABEL } from '../../lib/status'
+import { STATUS_LABEL, STATUS_TEXT } from '../../lib/status'
 import type { BoardStatus, Task } from '../../types/task'
 import { BoardColumn } from './BoardColumn'
 import { TAB_PREFIX } from './boardModel'
@@ -28,7 +28,7 @@ export function MobileBoard({
   const current = columns[index]
 
   return (
-    <div className="px-4 pb-24">
+    <div className="flex flex-1 flex-col px-4 pb-10">
       <div
         role="tablist"
         aria-label="Board columns"
@@ -47,6 +47,7 @@ export function MobileBoard({
 
       <div
         role="tabpanel"
+        className="flex flex-1 flex-col"
         aria-label={STATUS_LABEL[current.status]}
         onTouchStart={(event) => {
           const touch = event.touches[0]
@@ -98,7 +99,7 @@ function ColumnTab({
       aria-selected={selected}
       onClick={onSelect}
       className={`shrink-0 rounded-full px-3 py-1.5 text-[0.8125rem] transition-colors ${
-        selected || isOver ? 'bg-elevated text-text' : 'text-muted'
+        selected || isOver ? `bg-elevated ${STATUS_TEXT[status]}` : 'text-muted'
       }`}
     >
       {STATUS_LABEL[status]} <span className="text-muted">{count}</span>

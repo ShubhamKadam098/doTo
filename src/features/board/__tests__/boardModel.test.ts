@@ -4,6 +4,7 @@ import type { Task } from '../../../types/task'
 import {
   boardColumn,
   columnIndexFor,
+  previewColumns,
   resolveBoardDrop,
 } from '../boardModel'
 
@@ -107,5 +108,35 @@ describe('resolveBoardDrop', () => {
     expect(resolveBoardDrop(tasks, THIS_WEEK, id(tasks, 'a'), id(tasks, 'a'))).toBeNull()
     expect(resolveBoardDrop(tasks, THIS_WEEK, id(tasks, 'a'), 'column:nope')).toBeNull()
     expect(resolveBoardDrop(tasks, THIS_WEEK, 'missing', 'column:done')).toBeNull()
+  })
+})
+
+describe('previewColumns', () => {
+  const tasks = build([
+    ['a', '2026-09-07'],
+    ['b', '2026-09-08'],
+    ['w1', '2026-09-08', 'waiting'],
+    ['w2', '2026-09-09', 'waiting'],
+  ])
+  const columns = (['todo', 'waiting'] as const).map((status) => ({
+    status,
+    tasks: boardColumn(tasks, status, THIS_WEEK),
+  }))
+  const shown = (preview: Parameters<typeof previewColumns>[1]) =>
+    Object.fromEntries(
+      previewColumns(columns, preview).map((c) => [c.status, titles(c.tasks)]),
+    )
+
+  it('leaves the columns alone with no drag in flight', () => {
+    expect(previewColumns(columns, null)).toBe(columns)
+  })
+
+  it('shows the dragged card in the column it would land in, at its place', () => {
+    const preview = { id: id(tasks, 'a'), status: 'waiting' as const }
+    expect(shown({ ...preview, index: 0 })).toEqual({ todo: ['b'], waiting: ['a', 'w1', 'w2'] })
+    expect(shown({ ...preview, index: 1 })).toEqual({ todo: ['b'], waiting: ['w1', 'a', 'w2'] })
+    expect(shown({ ...preview, index: 9 })).toEqual({ todo: ['b'], waiting: ['w1', 'w2', 'a'] })
+    const moved = previewColumns(columns, { ...preview, index: 0 })[1].tasks[0]
+    expect(moved.status).toBe('waiting')
   })
 })

@@ -9,14 +9,13 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from '../../components/ui/context-menu'
-import { formatDayNumber, formatWeekdayLong, formatWeekdayShort } from '../../lib/date'
+import { formatDayNumber, formatWeekdayLong } from '../../lib/date'
 import { PRIORITY_LABEL, priorityPill } from '../../lib/priority'
 import { usePlanner } from '../planner/PlannerContext'
 import type { Task } from '../../types/task'
 
 export interface BoardCardProps {
   task: Task
-  today: string
   isFocused: boolean
   /** One card owns the tab stop, as one row does in the week. */
   isTabbable: boolean
@@ -31,7 +30,6 @@ export interface BoardCardProps {
 
 export function BoardCard({
   task,
-  today,
   isFocused,
   isTabbable,
   onFocus,
@@ -43,7 +41,6 @@ export function BoardCard({
   const planner = usePlanner()
   const ref = useRef<HTMLButtonElement>(null)
   const done = task.status === 'done'
-  const isToday = task.date === today
   const isMobile = variant === 'mobile'
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -58,13 +55,21 @@ export function BoardCard({
     ref: setNodeRef,
     style: { transform: CSS.Transform.toString(transform), transition },
     ...listeners,
-    className: `group relative flex items-start gap-2 rounded-lg border bg-elevated px-3 py-2.5 transition-colors ${
-      isFocused ? 'border-accent/60' : 'border-line hover:border-line-strong'
-    } ${isDragging ? 'z-20 opacity-40' : ''}`,
+    // Ruled like a week row, so the two views read as one planner.
+    className: `group relative isolate flex ${
+      isMobile ? 'h-row-mobile' : 'h-row'
+    } items-center gap-2 border-b border-line ${isDragging ? 'z-20 opacity-40' : ''}`,
   }
 
   const content = (
     <>
+      {/* Bleeds past the text, as on week rows, so the highlight has room. */}
+      <span
+        aria-hidden="true"
+        className={`pointer-events-none absolute inset-y-0 -inset-x-3 -z-10 rounded-lg transition-colors ${
+          isFocused ? 'bg-elevated' : ''
+        }`}
+      />
       <button
         ref={ref}
         type="button"
@@ -76,13 +81,10 @@ export function BoardCard({
         aria-label={`${task.title}. ${formatWeekdayLong(task.date)} ${formatDayNumber(
           task.date,
         )}. Priority ${PRIORITY_LABEL[task.priority]}`}
-        className="flex min-w-0 flex-1 flex-col items-start gap-1.5 text-left focus-visible:outline-none"
+        className="flex min-w-0 flex-1 items-center py-1 text-left text-[0.9375rem] focus-visible:outline-none"
       >
-        <span className={`max-w-full truncate text-[0.9375rem] ${priorityPill(task.priority, done)}`}>
+        <span className={`min-w-0 truncate transition-colors ${priorityPill(task.priority, done)}`}>
           {task.title}
-        </span>
-        <span className={`text-xs ${isToday ? 'text-accent' : 'text-muted'}`}>
-          {formatWeekdayShort(task.date)} {formatDayNumber(task.date)}
         </span>
       </button>
       {!isMobile && (
@@ -114,7 +116,9 @@ export function BoardCard({
         <ContextMenuItem onClick={() => planner.duplicateTask(task.id)}>
           Duplicate
         </ContextMenuItem>
-        <ContextMenuItem variant="destructive" onClick={() => {
+        <ContextMenuItem
+          variant="destructive"
+          onClick={() => {
             onLeave()
             planner.removeTask(task.id)
           }}
