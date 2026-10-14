@@ -201,3 +201,43 @@ describe('duplicate', () => {
     expect(taskReducer(state, { type: 'duplicate', id: 'nope' })).toBe(state)
   })
 })
+
+describe('status actions', () => {
+  it('creates a task straight into a status', () => {
+    const state = run([
+      { type: 'create', date: '2026-09-01', title: 'a', status: 'waiting' },
+    ])
+    expect(state.tasks[0].status).toBe('waiting')
+  })
+
+  it('moves status and reorders as single undoable steps', () => {
+    let state = withTasks(['a', 'b'])
+    const [a, b] = state.tasks
+
+    state = taskReducer(state, {
+      type: 'setStatus',
+      id: a.id,
+      status: 'in_progress',
+    })
+    expect(state.tasks[0].status).toBe('in_progress')
+    state = taskReducer(state, { type: 'undo' })
+    expect(state.tasks[0].status).toBe('todo')
+
+    state = taskReducer(state, { type: 'reorderOnBoard', id: b.id, toIndex: 0 })
+    expect(state.tasks.find((t) => t.id === b.id)!.boardOrder).toBe(0)
+    state = taskReducer(state, { type: 'undo' })
+    expect(state.tasks.find((t) => t.id === b.id)!.boardOrder).toBe(1)
+  })
+
+  it('a no-op status change adds no history', () => {
+    const state = withTasks(['a', 'b'])
+    const id = state.tasks[0].id
+    const setTodo = (toIndex?: number) =>
+      taskReducer(state, { type: 'setStatus', id, status: 'todo', toIndex })
+    expect(setTodo()).toBe(state)
+    expect(setTodo(0)).toBe(state)
+    expect(taskReducer(state, { type: 'reorderOnBoard', id, toIndex: 0 })).toBe(
+      state,
+    )
+  })
+})

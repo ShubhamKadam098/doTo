@@ -12,6 +12,7 @@ const FILTER_LABEL: Record<Filter, string> = {
   all: 'All',
   active: 'Active',
   completed: 'Completed',
+  discarded: 'Discarded',
 }
 
 export function PlannerHeader({ onOpenSearch }: { onOpenSearch: () => void }) {

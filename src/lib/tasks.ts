@@ -31,6 +31,9 @@ export function applyFilter(tasks: Task[], filter: Filter): Task[] {
   if (filter === 'completed') {
     return tasks.filter((task) => task.status === 'done')
   }
+  if (filter === 'discarded') {
+    return tasks.filter((task) => task.status === 'discarded')
+  }
   return tasks.filter((task) => task.status !== 'discarded')
 }
 
@@ -199,6 +202,16 @@ export function setStatus(
   return target.status === status
     ? moved
     : normalizeBoardOrders(moved, [target.status])
+}
+
+/** Moves a task within its own column. */
+export function reorderOnBoard(
+  tasks: Task[],
+  id: string,
+  toIndex: number,
+): Task[] {
+  const target = tasks.find((task) => task.id === id)
+  return target ? setStatus(tasks, id, target.status, toIndex) : tasks
 }
 
 /** The week's checkbox: Done reopens to Todo, anything open becomes Done. */

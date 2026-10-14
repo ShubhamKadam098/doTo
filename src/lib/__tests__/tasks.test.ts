@@ -3,9 +3,11 @@ import {
   addTask,
   applyFilter,
   deleteTask,
+  duplicateTask,
   moveTask,
   normalizeBoardOrders,
   normalizeOrders,
+  reorderOnBoard,
   setStatus,
   tasksForDate,
   toggleCompleted,
@@ -252,5 +254,50 @@ describe('ordering', () => {
       order: index * 10,
     }))
     expect(normalizeOrders(tasks).map((t) => t.order)).toEqual([0, 1, 2])
+  })
+})
+
+describe('board order', () => {
+  it('reorders within the column without touching date, order or status', () => {
+    const tasks = seed(['a', 'b', 'c'])
+    const moved = reorderOnBoard(tasks, tasks[2].id, 0)
+    const c = moved.find((t) => t.title === 'c')!
+    expect(
+      [...moved].sort((x, y) => x.boardOrder - y.boardOrder).map((t) => t.title),
+    ).toEqual(['c', 'a', 'b'])
+    expect(c).toMatchObject({ date: '2026-09-01', order: 2, status: 'todo' })
+  })
+
+  it('duplicates an open task into the same column, right under it', () => {
+    let tasks = seed(['a', 'b'])
+    tasks = setStatus(tasks, tasks[0].id, 'waiting')
+    tasks = setStatus(tasks, tasks[1].id, 'waiting')
+    tasks = duplicateTask(tasks, tasks[0].id)
+    const waiting = tasks
+      .filter((t) => t.status === 'waiting')
+      .sort((x, y) => x.boardOrder - y.boardOrder)
+    expect(waiting.map((t) => t.title)).toEqual(['a', 'a', 'b'])
+  })
+
+  it('duplicates a done task into the bottom of todo', () => {
+    let tasks = seed(['a', 'b'])
+    tasks = toggleCompleted(tasks, tasks[0].id)
+    tasks = duplicateTask(tasks, tasks[0].id)
+    const copy = tasks.find((t) => t.title === 'a' && t.status === 'todo')!
+    expect(copy.boardOrder).toBe(1)
+  })
+})
+
+describe('discarded filter', () => {
+  it('shows only discarded tasks, which every other filter hides', () => {
+    let tasks = seed(['kept', 'binned'])
+    tasks = setStatus(tasks, tasks[1].id, 'discarded')
+    const titles = (filter: Parameters<typeof applyFilter>[1]) =>
+      applyFilter(tasks, filter).map((t) => t.title)
+
+    expect(titles('discarded')).toEqual(['binned'])
+    expect(titles('all')).toEqual(['kept'])
+    expect(titles('active')).toEqual(['kept'])
+    expect(titles('completed')).toEqual([])
   })
 })

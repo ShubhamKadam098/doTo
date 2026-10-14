@@ -44,6 +44,6 @@ export interface Task {
   updatedAt: string
 }
 
-export type Filter = 'all' | 'active' | 'completed'
+export type Filter = 'all' | 'active' | 'completed' | 'discarded'
 
-export const FILTERS: readonly Filter[] = ['all', 'active', 'completed']
+export const FILTERS: readonly Filter[] = ['all', 'active', 'completed', 'discarded']

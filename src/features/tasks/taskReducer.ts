@@ -4,10 +4,12 @@ import {
   deleteTask,
   duplicateTask,
   moveTask,
+  reorderOnBoard,
+  setStatus,
   toggleCompleted,
   updateTask,
 } from '../../lib/tasks'
-import type { Priority, Task } from '../../types/task'
+import type { Priority, Status, Task } from '../../types/task'
 
 const HISTORY_LIMIT = 100
 
@@ -23,13 +25,15 @@ export interface TaskState extends Snapshot {
 
 export type TaskAction =
   | { type: 'hydrate'; tasks: Task[]; lastRolloverDate: string | null }
-  | { type: 'create'; date: string; title: string; priority?: Priority }
+  | { type: 'create'; date: string; title: string; priority?: Priority; status?: Status }
   | { type: 'rename'; id: string; title: string }
   | { type: 'delete'; id: string }
   | { type: 'duplicate'; id: string }
   | { type: 'toggle'; id: string }
   | { type: 'setPriority'; id: string; priority: Priority }
   | { type: 'move'; id: string; toDate: string; toIndex: number }
+  | { type: 'setStatus'; id: string; status: Status; toIndex?: number }
+  | { type: 'reorderOnBoard'; id: string; toIndex: number }
   | { type: 'rollover'; today: string }
   | { type: 'undo' }
   | { type: 'redo' }
@@ -75,6 +79,7 @@ export function taskReducer(state: TaskState, action: TaskAction): TaskState {
         title: action.title,
         date: action.date,
         priority: action.priority,
+        status: action.status,
       })
       return result ? commit(state, { tasks: result.tasks }) : state
     }
@@ -116,6 +121,16 @@ export function taskReducer(state: TaskState, action: TaskAction): TaskState {
     case 'move':
       return commit(state, {
         tasks: moveTask(state.tasks, action.id, action.toDate, action.toIndex),
+      })
+
+    case 'setStatus':
+      return commit(state, {
+        tasks: setStatus(state.tasks, action.id, action.status, action.toIndex),
+      })
+
+    case 'reorderOnBoard':
+      return commit(state, {
+        tasks: reorderOnBoard(state.tasks, action.id, action.toIndex),
       })
 
     case 'rollover': {
