@@ -23,6 +23,8 @@ export interface BoardCardProps {
   onFocus: () => void
   onKeyDown: (event: KeyboardEvent<HTMLElement>) => void
   onOpen: () => void
+  /** Called before a menu action removes the card from the board. */
+  onLeave: () => void
   /** Touch has no hover, so mobile drops the priority dot and the menu. */
   variant?: 'desktop' | 'mobile'
 }
@@ -35,6 +37,7 @@ export function BoardCard({
   onFocus,
   onKeyDown,
   onOpen,
+  onLeave,
   variant = 'desktop',
 }: BoardCardProps) {
   const planner = usePlanner()
@@ -102,13 +105,20 @@ export function BoardCard({
         <StatusMenuItems
           task={task}
           onMove={(status) => planner.setStatus(task.id, status)}
-          onDiscard={() => planner.discardTask(task.id)}
+          onDiscard={() => {
+            onLeave()
+            planner.discardTask(task.id)
+          }}
           onRestore={() => planner.restoreTask(task.id)}
         />
         <ContextMenuItem onClick={() => planner.duplicateTask(task.id)}>
           Duplicate
         </ContextMenuItem>
-        <ContextMenuItem variant="destructive" onClick={() => planner.removeTask(task.id)}>
+        <ContextMenuItem variant="destructive" onClick={() => {
+            onLeave()
+            planner.removeTask(task.id)
+          }}
+        >
           Delete
         </ContextMenuItem>
       </ContextMenuContent>

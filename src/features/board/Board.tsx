@@ -63,6 +63,32 @@ export function Board({ isDesktop }: { isDesktop: boolean }) {
     setFocusId(list[Math.min(at.r, list.length - 1)].id)
   }
 
+  // A removed card takes the DOM focus with it, so hand it to a neighbour first.
+  const focusNeighbourOf = (id: string) => {
+    const at = locate(id)
+    if (!at) return
+    const own = columns[at.c].tasks
+    if (own.length > 1) {
+      setFocusId(own[at.r > 0 ? at.r - 1 : 1].id)
+      return
+    }
+    const others = [
+      ...columns.slice(at.c + 1),
+      ...columns.slice(0, at.c).reverse(),
+    ].filter((column) => column.tasks.length > 0)
+    const next = others[0]
+    if (!next) {
+      setFocusId(null)
+      return
+    }
+    if (!isDesktop) setMobileIndex(columns.indexOf(next))
+    setFocusId(next.tasks[Math.min(at.r, next.tasks.length - 1)].id)
+  }
+
+  const leaveColumn = (id: string) => {
+    if (focusId === id) focusNeighbourOf(id)
+  }
+
   const moveCard = (task: Task, dc: number, dr: number) => {
     const at = locate(task.id)
     if (!at) return
@@ -109,7 +135,7 @@ export function Board({ isDesktop }: { isDesktop: boolean }) {
       planner.toggleTask(task.id)
     } else if (event.key === 'Delete' || event.key === 'Backspace') {
       event.preventDefault()
-      moveFocus(task.id, 0, 1)
+      focusNeighbourOf(task.id)
       planner.removeTask(task.id)
     } else if (PRIORITY_BY_KEY[event.key]) {
       event.preventDefault()
@@ -122,11 +148,12 @@ export function Board({ isDesktop }: { isDesktop: boolean }) {
       key={task.id}
       task={task}
       today={planner.today}
-      isFocused={focusId === task.id}
+      isFocused={focusId === task.id && detailId === null}
       isTabbable={tabId === task.id}
       onFocus={() => setFocusId(task.id)}
       onKeyDown={onCardKeyDown(task)}
       onOpen={() => setDetailId(task.id)}
+      onLeave={() => leaveColumn(task.id)}
       variant={isDesktop ? 'desktop' : 'mobile'}
     />
   )

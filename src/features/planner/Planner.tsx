@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useGlobalShortcuts } from '../../hooks/useGlobalShortcuts'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
-import { tasksForDate } from '../../lib/tasks'
 import { Board } from '../board/Board'
 import { SearchDialog } from '../search/SearchDialog'
 import { MobileWeek } from './MobileWeek'
@@ -22,7 +21,8 @@ export function Planner() {
       (planner.days.some((day) => day.isToday)
         ? planner.today
         : planner.days[0].date)
-    const row = tasksForDate(planner.allTasks, date).length
+    // Rows render from the filtered list, so hidden tasks must not be counted.
+    const row = planner.days.find((day) => day.date === date)?.tasks.length ?? 0
     planner.focusSlot({ date, row }, true)
   }, [planner])
 
@@ -33,7 +33,10 @@ export function Planner() {
         onUndo: planner.undo,
         onRedo: planner.redo,
         onToday: planner.goToToday,
-        onNewTask: view === 'week' ? focusNewTask : () => {},
+        onNewTask:
+          view === 'week' && planner.filter !== 'discarded'
+            ? focusNewTask
+            : () => {},
         onToggleView: () =>
           setView(view === 'week' ? 'board' : 'week'),
       }),
@@ -42,6 +45,7 @@ export function Planner() {
         planner.redo,
         planner.goToToday,
         view,
+        planner.filter,
         setView,
         focusNewTask,
       ],

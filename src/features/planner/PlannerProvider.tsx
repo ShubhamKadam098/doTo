@@ -140,22 +140,26 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     (task: Task) => {
       setViewState('week')
       saveView('week')
-      setFilter((current) => {
-        if (task.status === 'discarded') return 'discarded'
-        return current === 'discarded' ||
-          (current === 'active' && !isOpen(task)) ||
-          (current === 'completed' && task.status !== 'done')
-          ? 'all'
-          : current
-      })
+      // Rows are numbered within the filter the week ends up on.
+      let nextFilter = filter
+      if (task.status === 'discarded') nextFilter = 'discarded'
+      else if (
+        filter === 'discarded' ||
+        (filter === 'active' && !isOpen(task)) ||
+        (filter === 'completed' && task.status !== 'done')
+      ) {
+        nextFilter = 'all'
+      }
+      setFilter(nextFilter)
       setWeekStart(startOfWeekKey(task.date))
-      const row = tasksForDate(state.tasks, task.date).findIndex(
+      const visible = applyFilter(tasksForDate(state.tasks, task.date), nextFilter)
+      const row = visible.findIndex(
         (candidate) => candidate.id === task.id,
       )
       setFocus({ date: task.date, row: Math.max(0, row) })
       setEditing(false)
     },
-    [state.tasks],
+    [state.tasks, filter],
   )
 
   const createTask = useCallback(
@@ -177,9 +181,9 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     (id: string, run: () => void) => {
       // Focus is a position, so losing a row above it would otherwise leave an
       // open editor pointing at whatever slid into its place.
-      const removedRow = tasksForDate(state.tasks, focus?.date ?? '').findIndex(
-        (task) => task.id === id,
-      )
+      const removedRow = (
+        days.find((day) => day.date === focus?.date)?.tasks ?? []
+      ).findIndex((task) => task.id === id)
 
       // Animated so the rows below close the gap rather than jumping into it.
       withViewTransition(() => {
@@ -193,7 +197,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
         }
       })
     },
-    [focus?.date, state.tasks],
+    [focus?.date, days],
   )
   const removeTask = useCallback(
     (id: string) => takeOutOfView(id, () => dispatch({ type: 'delete', id })),

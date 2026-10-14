@@ -14,6 +14,7 @@ import {
 } from '@dnd-kit/core'
 import { useEffect, useState, type ReactNode } from 'react'
 import { usePlanner } from './PlannerContext'
+import { applyFilter, tasksForDate } from '../../lib/tasks'
 import { resolveDrop } from './resolveDrop'
 import type { Task } from '../../types/task'
 
@@ -74,7 +75,16 @@ export function PlannerDnd({ children }: { children: ReactNode }) {
     planner.relocateTask(draggedId, drop.toDate, drop.toIndex)
     // Selection is positional, so without this it stays on the row the task
     // left rather than following it.
-    planner.focusSlot({ date: drop.toDate, row: drop.toIndex })
+    // toIndex counts hidden tasks too; rows only show the filtered ones.
+    const landed = tasksForDate(planner.allTasks, drop.toDate).filter(
+      (task) => task.id !== draggedId,
+    )
+    const dragged = planner.allTasks.find((task) => task.id === draggedId)
+    if (dragged) landed.splice(drop.toIndex, 0, dragged)
+    const row = applyFilter(landed, planner.filter).findIndex(
+      (task) => task.id === draggedId,
+    )
+    planner.focusSlot({ date: drop.toDate, row: Math.max(0, row) })
   }
 
   return (

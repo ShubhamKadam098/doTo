@@ -189,6 +189,59 @@ describe('board interaction', () => {
   })
 })
 
+describe('board focus', () => {
+  it('keeps focus inside the detail sheet when it changes the status', async () => {
+    seedStorage([makeTask({ title: 'Plan', date: TODAY })])
+    const user = userEvent.setup()
+    renderApp()
+    await openBoard(user)
+
+    await user.click(within(column('Todo')).getByRole('button', { name: cardName('Plan') }))
+    const dialog = screen.getByRole('dialog')
+    await user.click(within(dialog).getByRole('button', { name: 'In progress' }))
+
+    expect(storedTasks()[0].status).toBe('in_progress')
+    expect(dialog).toContainElement(document.activeElement as HTMLElement)
+
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(
+      within(column('In progress')).getByRole('button', { name: cardName('Plan') }),
+    ).toHaveFocus()
+  })
+
+  it('moves focus to the other column when the last card is deleted', async () => {
+    seedStorage([
+      makeTask({ title: 'Plan', date: TODAY }),
+      makeTask({ title: 'Ship', date: TODAY, status: 'done', order: 1 }),
+    ])
+    const user = userEvent.setup()
+    renderApp()
+    await openBoard(user)
+
+    within(column('Todo')).getByRole('button', { name: cardName('Plan') }).focus()
+    await user.keyboard('{Delete}')
+
+    expect(storedTasks().map((task) => task.title)).toEqual(['Ship'])
+    expect(within(column('Done')).getByRole('button', { name: cardName('Ship') })).toHaveFocus()
+  })
+
+  it('moves focus to the card above when the last card of a column is deleted', async () => {
+    seedStorage([
+      makeTask({ title: 'First', date: TODAY, boardOrder: 0 }),
+      makeTask({ title: 'Second', date: TODAY, order: 1, boardOrder: 1 }),
+    ])
+    const user = userEvent.setup()
+    renderApp()
+    await openBoard(user)
+
+    within(column('Todo')).getByRole('button', { name: cardName('Second') }).focus()
+    await user.keyboard('{Delete}')
+
+    expect(within(column('Todo')).getByRole('button', { name: cardName('First') })).toHaveFocus()
+  })
+})
+
 describe('mobile board', () => {
   it('shows one column at a time behind tabs with counts', async () => {
     seedStorage([

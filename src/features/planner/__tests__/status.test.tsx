@@ -84,6 +84,35 @@ describe('status in the week', () => {
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
   })
 
+  it('N does nothing under the Discarded filter', async () => {
+    const user = userEvent.setup()
+    renderApp()
+
+    await user.click(
+      within(screen.getByRole('radiogroup', { name: 'Filter tasks' })).getByRole('radio', {
+        name: 'Discarded',
+      }),
+    )
+    await user.keyboard('n')
+
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+    expect(storedTasks()).toHaveLength(0)
+  })
+
+  it('N opens the editor right after the visible tasks, not the hidden ones', async () => {
+    seedStorage([
+      makeTask({ title: 'Binned', date: TODAY, status: 'discarded' }),
+      makeTask({ title: 'Visible', date: TODAY, order: 1 }),
+    ])
+    const user = userEvent.setup()
+    renderApp()
+
+    await user.keyboard('n')
+
+    const item = screen.getByRole('textbox').closest('li')
+    expect(within(item!.previousElementSibling as HTMLElement).getByText('Visible')).toBeInTheDocument()
+  })
+
   it('sets status from the mobile detail sheet', async () => {
     seedStorage([makeTask({ title: 'Groceries', date: TODAY })])
     const user = userEvent.setup()

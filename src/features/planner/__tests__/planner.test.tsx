@@ -471,6 +471,25 @@ describe('search', () => {
   })
 })
 
+describe('search reveal', () => {
+  it('focuses the revealed row when a discarded task sits above it', async () => {
+    seedStorage([
+      makeTask({ title: 'Binned', date: TODAY, status: 'discarded' }),
+      makeTask({ title: 'Target', date: TODAY, order: 1 }),
+    ])
+    const user = userEvent.setup()
+    renderApp()
+
+    await user.keyboard('{Control>}k{/Control}')
+    await user.type(screen.getByRole('textbox', { name: 'Search all tasks' }), 'target')
+    await user.keyboard('{Enter}')
+
+    expect(
+      within(daySection(TODAY)).getByRole('button', { name: rowName('Target', TODAY) }),
+    ).toHaveFocus()
+  })
+})
+
 /* ------------------------------------------------------------------ *
  * 7. Week navigation
  * ------------------------------------------------------------------ */

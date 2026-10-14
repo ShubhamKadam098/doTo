@@ -45,9 +45,9 @@ export function TaskRow({
   const isTabbable = focus
     ? isFocused
     : planner.defaultFocus.date === date && planner.defaultFocus.row === row
-  const isEditing = isFocused && editing
   // Discarded tasks are a list to restore from, not a place to write.
   const readOnly = planner.filter === 'discarded'
+  const isEditing = isFocused && editing && !readOnly
   const titleRef = useRef<HTMLButtonElement>(null)
 
   const {
