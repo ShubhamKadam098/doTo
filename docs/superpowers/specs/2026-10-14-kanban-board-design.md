@@ -1,7 +1,7 @@
 # Kanban board view — design
 
 Date: 2026-10-14
-Status: approved in brainstorming, awaiting spec review
+Status: approved; amended while planning (duplicate rule, menu shape, reveal)
 
 ## Goal
 
@@ -69,8 +69,9 @@ done means `status === 'done'`; "open" means `todo | in_progress | waiting`.
   `setStatus(…, 'todo')`, landing at the bottom of Todo.
 - `addTask` accepts an optional `status` (default `todo`) and appends the task
   to the bottom of that column.
-- `duplicateTask` copies the status; the copy sits directly after the original
-  in both `order` and `boardOrder`.
+- `duplicateTask`: an open task's copy keeps its status and sits directly after
+  the original in both `order` and `boardOrder`; a done or discarded task's copy
+  starts in Todo (bottom of the column), as copies never started completed before.
 - `deleteTask` closes the gap in both the day and the column.
 - **Rollover** moves tasks whose status is `todo`, `in_progress` or `waiting`
   and dated before today. `done` and `discarded` never move. `boardOrder` is
@@ -137,7 +138,10 @@ part of task state or undo history.
   vertical drops within a column dispatch `reorderOnBoard`; drops in another
   column dispatch `setStatus` with the drop index.
 - **Click / Enter** opens `TaskDetailSheet`.
-- **Context menu**: Move to → (the four statuses), Priority, Discard, Delete.
+- **Context menu**: flat "Move to <status>" items for the other columns,
+  Discard, Duplicate, Delete. Priority is set from the hover-revealed priority
+  dot on the card (as on week rows) or keys `1`–`4`.
+- `N` (new task) does nothing on the board; each column has its own Add.
 - **Keyboard**:
 
 | Key | Action |
@@ -169,14 +173,15 @@ weeks keep their relative order.
   ("In progress") and `waiting` ("Waiting") only.
 - Discarded tasks are excluded unless the Discarded filter is selected; in that
   filter rows show a Restore action and are read-only otherwise.
-- The row context menu and `TaskDetailSheet` gain a status picker
+- The row context menu (flat "Move to <status>" items) and `TaskDetailSheet` gain a status picker
   (Todo / In Progress / Waiting / Done) and Discard (or Restore when discarded).
 - Status changes from the week land at the bottom of the target column.
 
 ## 7. Search
 
 `SearchDialog` includes discarded tasks, greyed with a "Discarded" tag.
-Revealing one switches the filter to Discarded.
+Revealing one switches the filter to Discarded. Revealing any task from the
+board switches to the Week view, since reveal focuses a week row.
 
 ## 8. Edge cases
 
