@@ -14,6 +14,7 @@ import { boardColumn, columnIndexFor } from './boardModel'
 export function Board({ isDesktop }: { isDesktop: boolean }) {
   const planner = usePlanner()
   const [focusId, setFocusId] = useState<string | null>(null)
+  const [mobileIndex, setMobileIndex] = useState(0)
   const [detailId, setDetailId] = useState<string | null>(null)
   const detail = planner.allTasks.find((task) => task.id === detailId) ?? null
 
@@ -32,10 +33,10 @@ export function Board({ isDesktop }: { isDesktop: boolean }) {
 
   // New cards land on today when it is in view, else on the week's Monday.
   const addDate = dates.has(planner.today) ? planner.today : planner.weekStart
-  const firstId = columns.find((column) => column.tasks.length > 0)?.tasks[0].id
   // A week change, discard or delete can drop the focused card; the tab stop must survive.
-  const visibleIds = new Set(columns.flatMap((column) => column.tasks.map((task) => task.id)))
-  const tabId = focusId && visibleIds.has(focusId) ? focusId : firstId
+  // On mobile only the current column is mounted, so the tab stop must live in it.
+  const stopScope = isDesktop ? columns.flatMap((column) => column.tasks) : columns[mobileIndex].tasks
+  const tabId = stopScope.some((task) => task.id === focusId) ? focusId : stopScope[0]?.id
 
   const locate = (id: string) => {
     for (let c = 0; c < columns.length; c++) {
@@ -58,6 +59,7 @@ export function Board({ isDesktop }: { isDesktop: boolean }) {
     while (c >= 0 && c < columns.length && columns[c].tasks.length === 0) c += dc
     if (c < 0 || c >= columns.length) return
     const list = columns[c].tasks
+    if (!isDesktop) setMobileIndex(c)
     setFocusId(list[Math.min(at.r, list.length - 1)].id)
   }
 
@@ -72,6 +74,7 @@ export function Board({ isDesktop }: { isDesktop: boolean }) {
         next,
         columnIndexFor(planner.allTasks, next, dates, task.id, Number.POSITIVE_INFINITY),
       )
+      if (!isDesktop) setMobileIndex(at.c + dc)
       return
     }
     const to = at.r + dr
@@ -147,6 +150,8 @@ export function Board({ isDesktop }: { isDesktop: boolean }) {
       ) : (
         <MobileBoard
           columns={columns}
+          index={mobileIndex}
+          onIndexChange={setMobileIndex}
           renderCard={renderCard}
           onAdd={(status, title) => planner.createTask(addDate, title, status)}
         />

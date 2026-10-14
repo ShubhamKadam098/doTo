@@ -1,5 +1,5 @@
 import { useDroppable } from '@dnd-kit/core'
-import { useRef, useState, type ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 import { STATUS_LABEL } from '../../lib/status'
 import type { BoardStatus, Task } from '../../types/task'
 import { BoardColumn } from './BoardColumn'
@@ -13,14 +13,17 @@ interface Column {
 /** Four columns do not fit a phone: one at a time, switched by tab or swipe. */
 export function MobileBoard({
   columns,
+  index,
+  onIndexChange,
   renderCard,
   onAdd,
 }: {
   columns: Column[]
+  index: number
+  onIndexChange: (index: number) => void
   renderCard: (task: Task) => ReactNode
   onAdd: (status: BoardStatus, title: string) => void
 }) {
-  const [index, setIndex] = useState(0)
   const touchStart = useRef<{ x: number; y: number } | null>(null)
   const current = columns[index]
 
@@ -37,7 +40,7 @@ export function MobileBoard({
             status={column.status}
             count={column.tasks.length}
             selected={i === index}
-            onSelect={() => setIndex(i)}
+            onSelect={() => onIndexChange(i)}
           />
         ))}
       </div>
@@ -58,7 +61,7 @@ export function MobileBoard({
           const dy = touch.clientY - start.y
           // A clear horizontal flick; vertical scrolling and long-press drags pass.
           if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return
-          setIndex((i) => Math.max(0, Math.min(columns.length - 1, i + (dx < 0 ? 1 : -1))))
+          onIndexChange(Math.max(0, Math.min(columns.length - 1, index + (dx < 0 ? 1 : -1))))
         }}
       >
         <BoardColumn

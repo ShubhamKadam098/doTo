@@ -219,4 +219,49 @@ describe('mobile board', () => {
 
     expect(storedTasks()[0].status).toBe('waiting')
   })
+
+  describe('keyboard with one column mounted', () => {
+    const seed = () =>
+      seedStorage([
+        makeTask({ title: 'Plan', date: TODAY }),
+        makeTask({ title: 'Await', date: TODAY, status: 'waiting', order: 1 }),
+      ])
+
+    it('keeps the tab stop inside the visible column', async () => {
+      seed()
+      const user = userEvent.setup()
+      renderApp({ desktop: false })
+      await openBoard(user)
+
+      await user.click(screen.getByRole('tab', { name: 'Waiting 1' }))
+      expect(screen.getByRole('button', { name: cardName('Await') })).toHaveAttribute('tabindex', '0')
+    })
+
+    it('switches tab and focus on ArrowRight', async () => {
+      seed()
+      const user = userEvent.setup()
+      renderApp({ desktop: false })
+      await openBoard(user)
+
+      screen.getByRole('button', { name: cardName('Plan') }).focus()
+      await user.keyboard('{ArrowRight}')
+
+      expect(screen.getByRole('tab', { name: 'Waiting 1' })).toHaveAttribute('aria-selected', 'true')
+      expect(screen.getByRole('button', { name: cardName('Await') })).toHaveFocus()
+    })
+
+    it('follows a card moved with Alt+ArrowRight', async () => {
+      seed()
+      const user = userEvent.setup()
+      renderApp({ desktop: false })
+      await openBoard(user)
+
+      screen.getByRole('button', { name: cardName('Plan') }).focus()
+      await user.keyboard('{Alt>}{ArrowRight}{/Alt}')
+
+      expect(storedTasks().find((t) => t.title === 'Plan')?.status).toBe('in_progress')
+      expect(screen.getByRole('tab', { name: 'In progress 1' })).toHaveAttribute('aria-selected', 'true')
+      expect(screen.getByRole('button', { name: cardName('Plan') })).toHaveFocus()
+    })
+  })
 })
