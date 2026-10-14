@@ -82,3 +82,109 @@ describe('board view', () => {
     expect(within(column('Waiting')).getByRole('button', { name: cardName('Call the bank') })).toBeInTheDocument()
   })
 })
+
+describe('board interaction', () => {
+  const orderOf = (status: string) =>
+    storedTasks()
+      .filter((task) => task.status === status)
+      .sort((a, b) => a.boardOrder - b.boardOrder)
+      .map((task) => task.title)
+
+  it('Alt+→ moves a card to the next column and keeps focus on it', async () => {
+    seedStorage([makeTask({ title: 'Plan', date: TODAY })])
+    const user = userEvent.setup()
+    renderApp()
+    await openBoard(user)
+
+    const card = within(column('Todo')).getByRole('button', { name: cardName('Plan') })
+    card.focus()
+    await user.keyboard('{Alt>}{ArrowRight}{/Alt}')
+
+    expect(storedTasks()[0].status).toBe('in_progress')
+    const moved = within(column('In progress')).getByRole('button', { name: cardName('Plan') })
+    expect(moved).toHaveFocus()
+  })
+
+  it('Alt+↓ reorders within the column; undo puts it back', async () => {
+    seedStorage([
+      makeTask({ title: 'First', date: TODAY, boardOrder: 0 }),
+      makeTask({ title: 'Second', date: TODAY, order: 1, boardOrder: 1 }),
+    ])
+    const user = userEvent.setup()
+    renderApp()
+    await openBoard(user)
+
+    within(column('Todo')).getByRole('button', { name: cardName('First') }).focus()
+    await user.keyboard('{Alt>}{ArrowDown}{/Alt}')
+    expect(orderOf('todo')).toEqual(['Second', 'First'])
+
+    await user.keyboard('{Control>}z{/Control}')
+    expect(orderOf('todo')).toEqual(['First', 'Second'])
+  })
+
+  it('arrow keys move focus across columns', async () => {
+    seedStorage([
+      makeTask({ title: 'Plan', date: TODAY }),
+      makeTask({ title: 'Ship', date: TODAY, status: 'done', order: 1 }),
+    ])
+    const user = userEvent.setup()
+    renderApp()
+    await openBoard(user)
+
+    within(column('Todo')).getByRole('button', { name: cardName('Plan') }).focus()
+    await user.keyboard('{ArrowRight}')
+    expect(within(column('Done')).getByRole('button', { name: cardName('Ship') })).toHaveFocus()
+  })
+
+  it('Space completes, number keys set priority, Enter opens the sheet', async () => {
+    seedStorage([makeTask({ title: 'Plan', date: TODAY })])
+    const user = userEvent.setup()
+    renderApp()
+    await openBoard(user)
+
+    within(column('Todo')).getByRole('button', { name: cardName('Plan') }).focus()
+    await user.keyboard('4')
+    expect(storedTasks()[0].priority).toBe('high')
+    await user.keyboard(' ')
+    expect(storedTasks()[0].status).toBe('done')
+
+    within(column('Done')).getByRole('button', { name: cardName('Plan', TODAY, 'High') }).focus()
+    await user.keyboard('{Enter}')
+    expect(screen.getByRole('dialog', { name: 'Task: Plan' })).toBeInTheDocument()
+  })
+
+  it('discards from the card menu', async () => {
+    seedStorage([makeTask({ title: 'Plan', date: TODAY })])
+    const user = userEvent.setup()
+    renderApp()
+    await openBoard(user)
+
+    await user.pointer({
+      target: within(column('Todo')).getByRole('button', { name: cardName('Plan') }),
+      keys: '[MouseRight]',
+    })
+    await user.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'Discard' }))
+
+    expect(storedTasks()[0].status).toBe('discarded')
+    expect(screen.queryByText('Plan')).not.toBeInTheDocument()
+  })
+
+  it('keeps a tab stop after the focused card is discarded', async () => {
+    seedStorage([
+      makeTask({ title: 'Plan', date: TODAY }),
+      makeTask({ title: 'Build', date: TODAY, order: 1, boardOrder: 1 }),
+    ])
+    const user = userEvent.setup()
+    renderApp()
+    await openBoard(user)
+
+    const plan = within(column('Todo')).getByRole('button', { name: cardName('Plan') })
+    plan.focus()
+    await user.pointer({ target: plan, keys: '[MouseRight]' })
+    await user.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'Discard' }))
+
+    expect(
+      within(column('Todo')).getByRole('button', { name: cardName('Build') }),
+    ).toHaveAttribute('tabindex', '0')
+  })
+})
