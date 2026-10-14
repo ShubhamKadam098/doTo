@@ -15,6 +15,7 @@ export function TaskDetailSheet({
   onClose: () => void
 }) {
   const planner = usePlanner()
+  const completed = task.status === 'done'
   const [title, setTitle] = useState(task.title)
   const dialogRef = useRef<HTMLDivElement>(null)
 
@@ -84,19 +85,19 @@ export function TaskDetailSheet({
               }
             }}
             className={`min-w-0 flex-1 bg-transparent text-xl font-semibold outline-none ${
-              task.completed ? 'text-done line-through' : 'text-text'
+              completed ? 'text-done line-through' : 'text-text'
             }`}
           />
           <button
             type="button"
             onClick={() => planner.toggleTask(task.id)}
-            aria-label={`Mark as ${task.completed ? 'not completed' : 'completed'}`}
-            aria-pressed={task.completed}
+            aria-label={`Mark as ${completed ? 'not completed' : 'completed'}`}
+            aria-pressed={completed}
             className={`shrink-0 rounded-full p-1 ${
-              task.completed ? 'text-done' : 'text-muted'
+              completed ? 'text-done' : 'text-muted'
             }`}
           >
-            <CheckCircleIcon className="h-6 w-6" filled={task.completed} />
+            <CheckCircleIcon className="h-6 w-6" filled={completed} />
           </button>
         </div>
 

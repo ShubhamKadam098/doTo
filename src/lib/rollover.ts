@@ -1,4 +1,4 @@
-import { byOrder, nowIso } from './tasks'
+import { byOrder, isOpen, nowIso } from './tasks'
 import type { Task } from '../types/task'
 
 export interface RolloverResult {
@@ -8,14 +8,14 @@ export interface RolloverResult {
 }
 
 /**
- * Moves every incomplete task dated before `today` onto `today`, appended after
- * the tasks already there and keeping their relative order. Completed tasks and
+ * Moves every open (todo, in progress, waiting) task dated before `today` onto `today`, appended after
+ * the tasks already there and keeping their relative order. Done and discarded tasks and
  * future tasks are never touched, and no task is ever duplicated: ids, titles,
- * completion state and priority are all preserved.
+ * status, board position and priority are all preserved.
  */
 export function rollover(tasks: Task[], today: string): RolloverResult {
   const due = tasks
-    .filter((task) => !task.completed && task.date < today)
+    .filter((task) => isOpen(task) && task.date < today)
     .sort((a, b) =>
       a.date === b.date ? byOrder(a, b) : a.date < b.date ? -1 : 1,
     )

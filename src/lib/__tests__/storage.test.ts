@@ -6,9 +6,10 @@ const validTask: Task = {
   id: 't1',
   title: 'ChatBot',
   date: '2026-09-01',
-  completed: false,
+  status: 'todo',
   priority: 'high',
   order: 0,
+  boardOrder: 0,
   createdAt: '2026-09-01T10:00:00.000Z',
   updatedAt: '2026-09-01T10:00:00.000Z',
 }
@@ -17,7 +18,7 @@ beforeEach(() => localStorage.clear())
 
 describe('storage', () => {
   it('round-trips state through localStorage', () => {
-    save({ version: 1, tasks: [validTask], lastRolloverDate: '2026-09-06' })
+    save({ version: 2, tasks: [validTask], lastRolloverDate: '2026-09-06' })
     const { state, recovered } = load()
 
     expect(recovered).toBe(false)
@@ -30,8 +31,8 @@ describe('storage', () => {
   })
 
   it('writes the current schema version', () => {
-    save({ version: 1, tasks: [], lastRolloverDate: null })
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).version).toBe(1)
+    save({ version: 2, tasks: [], lastRolloverDate: null })
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).version).toBe(2)
   })
 
   it('recovers from unparseable JSON without throwing', () => {
@@ -72,10 +73,11 @@ describe('storage', () => {
     const { state, recovered } = load()
 
     expect(recovered).toBe(true)
-    expect(state.version).toBe(1)
+    expect(state.version).toBe(2)
     expect(state.tasks[0]).toMatchObject({
       id: 'a',
-      completed: false,
+      status: 'todo',
+      boardOrder: 0,
       priority: 'none',
       order: 0,
     })
@@ -100,5 +102,53 @@ describe('storage', () => {
     expect(parseTask({ ...validTask, priority: 'urgent' })?.priority).toBe(
       'none',
     )
+  })
+
+  it('migrates a v1 store: ticked tasks become done, columns follow the week', () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        lastRolloverDate: null,
+        tasks: [
+          { id: 'tue', title: 'Tue', date: '2026-09-02', order: 0, completed: false },
+          { id: 'mon-2', title: 'Mon 2', date: '2026-09-01', order: 1, completed: false },
+          { id: 'mon-1', title: 'Mon 1', date: '2026-09-01', order: 0, completed: false },
+          { id: 'done', title: 'Done', date: '2026-09-01', order: 2, completed: true },
+        ],
+      }),
+    )
+    const { state } = load()
+    const byId = (id: string) => state.tasks.find((task) => task.id === id)!
+
+    expect(byId('done')).toMatchObject({ status: 'done', boardOrder: 0 })
+    expect(byId('mon-1')).toMatchObject({ status: 'todo', boardOrder: 0 })
+    expect(byId('mon-2')).toMatchObject({ status: 'todo', boardOrder: 1 })
+    expect(byId('tue')).toMatchObject({ status: 'todo', boardOrder: 2 })
+  })
+
+  it('reads every status and coerces an unknown one to todo', () => {
+    expect(parseTask({ ...validTask, status: 'waiting' })?.status).toBe('waiting')
+    expect(parseTask({ ...validTask, status: 'discarded' })?.status).toBe('discarded')
+    expect(parseTask({ ...validTask, status: 'archived' })?.status).toBe('todo')
+  })
+
+  it('repairs gaps and duplicates in board order on load', () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 2,
+        lastRolloverDate: null,
+        tasks: [
+          { ...validTask, id: 'a', boardOrder: 9 },
+          { ...validTask, id: 'b', boardOrder: 4 },
+          { ...validTask, id: 'c', boardOrder: 4, order: 1 },
+        ],
+      }),
+    )
+    const orders = Object.fromEntries(
+      load().state.tasks.map((task) => [task.id, task.boardOrder]),
+    )
+    expect(orders).toEqual({ b: 0, c: 1, a: 2 })
   })
 })

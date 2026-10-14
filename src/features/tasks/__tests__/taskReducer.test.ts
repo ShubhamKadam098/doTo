@@ -58,7 +58,7 @@ describe('taskReducer', () => {
     const id = state.tasks[0].id
 
     state = taskReducer(state, { type: 'toggle', id })
-    expect(state.tasks[0].completed).toBe(true)
+    expect(state.tasks[0].status).toBe('done')
 
     state = taskReducer(state, { type: 'setPriority', id, priority: 'medium' })
     expect(state.tasks[0].priority).toBe('medium')
@@ -88,7 +88,7 @@ describe('undo / redo', () => {
     let state = withTasks(['a'])
     state = taskReducer(state, { type: 'toggle', id: state.tasks[0].id })
     state = taskReducer(state, { type: 'undo' })
-    expect(state.tasks[0].completed).toBe(false)
+    expect(state.tasks[0].status).toBe('todo')
   })
 
   it('undoes a date/order move', () => {
@@ -185,7 +185,7 @@ describe('duplicate', () => {
     const copy = tasksForDate(state.tasks, '2026-09-01')[1]
     expect(copy.id).not.toBe(id)
     expect(copy.priority).toBe('high')
-    expect(copy.completed).toBe(false)
+    expect(copy.status).toBe('todo')
   })
 
   it('is undoable as a single step', () => {

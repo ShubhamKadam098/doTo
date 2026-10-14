@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import { rollover } from '../rollover'
-import { addTask, tasksForDate, updateTask } from '../tasks'
+import { addTask, setStatus, tasksForDate, updateTask } from '../tasks'
 import type { Task } from '../../types/task'
 
 const TODAY = '2026-09-06'
 
 function build(
-  entries: Array<{ title: string; date: string; completed?: boolean }>,
+  entries: Array<{ title: string; date: string; status?: Task['status'] }>,
 ): Task[] {
   let tasks: Task[] = []
   for (const entry of entries) {
     const result = addTask(tasks, { title: entry.title, date: entry.date })!
-    tasks = entry.completed
-      ? updateTask(result.tasks, result.task.id, { completed: true })
+    tasks = entry.status
+      ? setStatus(result.tasks, result.task.id, entry.status)
       : result.tasks
   }
   return tasks
@@ -35,7 +35,7 @@ describe('rollover', () => {
   it('leaves a completed task on its original date', () => {
     const tasks = build([
       { title: 'A', date: '2026-09-05' },
-      { title: 'B', date: '2026-09-05', completed: true },
+      { title: 'B', date: '2026-09-05', status: 'done' },
     ])
     const { tasks: rolled } = rollover(tasks, TODAY)
 
@@ -60,7 +60,7 @@ describe('rollover', () => {
       { title: 'A', date: '2026-09-01' },
       { title: 'B', date: '2026-09-02' },
       { title: 'C', date: '2026-09-03' },
-      { title: 'D', date: '2026-09-04', completed: true },
+      { title: 'D', date: '2026-09-04', status: 'done' },
     ])
     const { tasks: rolled, movedIds } = rollover(tasks, TODAY)
 
@@ -82,7 +82,7 @@ describe('rollover', () => {
     const after = rollover(tasks, TODAY).tasks[0]
     expect(after.id).toBe(before.id)
     expect(after.title).toBe(before.title)
-    expect(after.completed).toBe(false)
+    expect(after.status).toBe('todo')
     expect(after.priority).toBe('high')
     expect(after.createdAt).toBe(before.createdAt)
   })
@@ -101,7 +101,7 @@ describe('rollover', () => {
 
   it('closes order gaps left behind on emptied days', () => {
     const tasks = build([
-      { title: 'Done', date: '2026-09-05', completed: true },
+      { title: 'Done', date: '2026-09-05', status: 'done' },
       { title: 'Open', date: '2026-09-05' },
     ])
     const { tasks: rolled } = rollover(tasks, TODAY)
@@ -114,5 +114,21 @@ describe('rollover', () => {
     const second = rollover(first.tasks, TODAY)
     expect(second.movedIds).toEqual([])
     expect(second.tasks).toHaveLength(1)
+  })
+
+  it('carries in-progress and waiting tasks with their status', () => {
+    const tasks = build([
+      { title: 'Doing', date: '2026-09-04', status: 'in_progress' },
+      { title: 'Blocked', date: '2026-09-04', status: 'waiting' },
+      { title: 'Binned', date: '2026-09-04', status: 'discarded' },
+    ])
+    const { tasks: rolled, movedIds } = rollover(tasks, TODAY)
+
+    expect(movedIds).toHaveLength(2)
+    const byTitle = (title: string) => rolled.find((t) => t.title === title)!
+    expect(byTitle('Doing')).toMatchObject({ date: TODAY, status: 'in_progress' })
+    expect(byTitle('Blocked')).toMatchObject({ date: TODAY, status: 'waiting' })
+    expect(byTitle('Binned').date).toBe('2026-09-04')
+    expect(byTitle('Doing').boardOrder).toBe(tasks.find((t) => t.title === 'Doing')!.boardOrder)
   })
 })

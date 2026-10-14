@@ -11,7 +11,7 @@ import {
   todayKey,
   weekDayKeys,
 } from '../../lib/date'
-import { applyFilter, tasksForDate } from '../../lib/tasks'
+import { applyFilter, isOpen, tasksForDate } from '../../lib/tasks'
 import { withViewTransition } from '../../lib/viewTransition'
 import { useTaskStore } from '../tasks/TaskStoreContext'
 import {
@@ -130,8 +130,8 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   const revealTask = useCallback(
     (task: Task) => {
       setFilter((current) =>
-        (current === 'active' && task.completed) ||
-        (current === 'completed' && !task.completed)
+        (current === 'active' && !isOpen(task)) ||
+        (current === 'completed' && task.status !== 'done')
           ? 'all'
           : current,
       )

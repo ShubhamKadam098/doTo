@@ -4,7 +4,9 @@ import {
   applyFilter,
   deleteTask,
   moveTask,
+  normalizeBoardOrders,
   normalizeOrders,
+  setStatus,
   tasksForDate,
   toggleCompleted,
   updateTask,
@@ -28,11 +30,13 @@ describe('task CRUD', () => {
     expect(tasks[0]).toMatchObject({
       title: 'ChatBot',
       date: '2026-09-01',
-      completed: false,
+      status: 'todo',
       priority: 'none',
       order: 0,
+      boardOrder: 0,
     })
     expect(tasks[1].order).toBe(1)
+    expect(tasks[1].boardOrder).toBe(1)
     expect(tasks[0].id).not.toBe(tasks[1].id)
   })
 
@@ -66,19 +70,95 @@ describe('task CRUD', () => {
 })
 
 describe('completion', () => {
-  it('completes and uncompletes without moving the task', () => {
+  it('completes and reopens without moving the task', () => {
     const tasks = seed(['a'])
     const completed = toggleCompleted(tasks, tasks[0].id)
-    expect(completed[0].completed).toBe(true)
+    expect(completed[0].status).toBe('done')
     expect(completed[0].date).toBe('2026-09-01')
 
     const reopened = toggleCompleted(completed, tasks[0].id)
-    expect(reopened[0].completed).toBe(false)
+    expect(reopened[0].status).toBe('todo')
+  })
+
+  it('completes an in-progress task and reopens it as todo', () => {
+    let tasks = seed(['a'])
+    tasks = setStatus(tasks, tasks[0].id, 'in_progress')
+    tasks = toggleCompleted(tasks, tasks[0].id)
+    expect(tasks[0].status).toBe('done')
+    tasks = toggleCompleted(tasks, tasks[0].id)
+    expect(tasks[0].status).toBe('todo')
+  })
+
+  it('leaves a discarded task alone', () => {
+    let tasks = seed(['a'])
+    tasks = setStatus(tasks, tasks[0].id, 'discarded')
+    expect(toggleCompleted(tasks, tasks[0].id)).toBe(tasks)
   })
 
   it('keeps completed tasks visible under the default filter', () => {
     const tasks = toggleCompleted(seed(['a', 'b']), seed(['a', 'b'])[0].id)
     expect(applyFilter(tasks, 'all')).toHaveLength(2)
+  })
+})
+
+describe('status', () => {
+  const titles = (tasks: Task[], status: Task['status']) =>
+    tasks
+      .filter((task) => task.status === status)
+      .sort((a, b) => a.boardOrder - b.boardOrder)
+      .map((task) => task.title)
+
+  it('appends to the bottom of the target column and closes the gap', () => {
+    let tasks = seed(['a', 'b', 'c'])
+    tasks = setStatus(tasks, tasks[0].id, 'waiting')
+    tasks = setStatus(tasks, tasks[1].id, 'waiting')
+
+    expect(titles(tasks, 'waiting')).toEqual(['a', 'b'])
+    expect(titles(tasks, 'todo')).toEqual(['c'])
+    expect(tasks.find((t) => t.title === 'c')!.boardOrder).toBe(0)
+  })
+
+  it('inserts at an index in the target column', () => {
+    let tasks = seed(['a', 'b', 'c'])
+    tasks = setStatus(tasks, tasks[0].id, 'waiting')
+    tasks = setStatus(tasks, tasks[1].id, 'waiting')
+    tasks = setStatus(tasks, tasks[2].id, 'waiting', 0)
+    expect(titles(tasks, 'waiting')).toEqual(['c', 'a', 'b'])
+  })
+
+  it('reorders within the same column when given an index', () => {
+    const tasks = seed(['a', 'b', 'c'])
+    const moved = setStatus(tasks, tasks[0].id, 'todo', 2)
+    expect(titles(moved, 'todo')).toEqual(['b', 'c', 'a'])
+  })
+
+  it('never touches date or day order', () => {
+    const tasks = seed(['a', 'b'])
+    const moved = setStatus(tasks, tasks[1].id, 'done', 0)
+    const b = moved.find((t) => t.title === 'b')!
+    expect(b.date).toBe('2026-09-01')
+    expect(b.order).toBe(1)
+  })
+
+  it('returns the same array for a no-op', () => {
+    const tasks = seed(['a', 'b'])
+    expect(setStatus(tasks, tasks[0].id, 'todo')).toBe(tasks)
+    expect(setStatus(tasks, tasks[0].id, 'todo', 0)).toBe(tasks)
+    expect(setStatus(tasks, 'missing', 'done')).toBe(tasks)
+  })
+
+  it('deleting closes the column gap', () => {
+    const tasks = seed(['a', 'b', 'c'])
+    const remaining = deleteTask(tasks, tasks[0].id)
+    expect(remaining.map((t) => t.boardOrder)).toEqual([0, 1])
+  })
+
+  it('normalizes board order per status', () => {
+    const tasks = seed(['a', 'b']).map((task, index) => ({
+      ...task,
+      boardOrder: index === 0 ? 7 : 3,
+    }))
+    expect(normalizeBoardOrders(tasks).map((t) => t.boardOrder)).toEqual([1, 0])
   })
 })
 
@@ -140,10 +220,8 @@ describe('ordering', () => {
 
   it('moves a task between days, preserving identity and fields', () => {
     let tasks = seed(['a', 'b'])
-    tasks = updateTask(tasks, tasks[0].id, {
-      priority: 'high',
-      completed: true,
-    })
+    tasks = updateTask(tasks, tasks[0].id, { priority: 'high' })
+    tasks = toggleCompleted(tasks, tasks[0].id)
     const target = tasks[0]
 
     const moved = moveTask(tasks, target.id, '2026-09-03', 0)
@@ -153,7 +231,7 @@ describe('ordering', () => {
     expect(found.order).toBe(0)
     expect(found.title).toBe(target.title)
     expect(found.priority).toBe('high')
-    expect(found.completed).toBe(true)
+    expect(found.status).toBe('done')
     expect(found.createdAt).toBe(target.createdAt)
     expect(moved).toHaveLength(2)
     expect(tasksForDate(moved, '2026-09-01').map((t) => t.order)).toEqual([0])

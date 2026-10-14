@@ -136,7 +136,7 @@ export function TaskRow({
 
   const isMobile = variant === 'mobile'
   const rowHeight = isMobile ? 'h-row-mobile' : 'h-row'
-  const completed = task?.completed ?? false
+  const completed = task?.status === 'done'
 
   const rowProps = {
     ref: setNodeRef,

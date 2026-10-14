@@ -41,9 +41,10 @@ function makeTask(
   const stamp = new Date(Date.UTC(2020, 0, 1, 0, 0, seq)).toISOString()
   return {
     id: `seed-${seq}`,
-    completed: false,
+    status: 'todo',
     priority: 'none',
     order: 0,
+    boardOrder: 0,
     createdAt: stamp,
     updatedAt: stamp,
     ...input,
@@ -295,7 +296,7 @@ describe('creating a task', () => {
     expect(persisted[0]).toMatchObject({
       title: 'Write the brief',
       date: TODAY,
-      completed: false,
+      status: 'todo',
     })
     expect(persisted[1]).toMatchObject({ title: 'Second one', order: 1 })
   })
@@ -368,7 +369,7 @@ describe('completing a task', () => {
     })
     expect(completedRow).toBeInTheDocument()
     expect(section).toContainElement(completedRow)
-    expect(storedTasks()[0].completed).toBe(true)
+    expect(storedTasks()[0].status).toBe('done')
 
     // And back again.
     await user.keyboard('[Space]')
@@ -377,7 +378,7 @@ describe('completing a task', () => {
         name: rowName('Ship the deck', TODAY),
       }),
     ).toBeInTheDocument()
-    expect(storedTasks()[0].completed).toBe(false)
+    expect(storedTasks()[0].status).toBe('todo')
   })
 })
 
@@ -389,7 +390,7 @@ describe('filters', () => {
   it('narrows the view without mutating the stored tasks', async () => {
     seedStorage([
       makeTask({ title: 'Still open', date: TODAY, order: 0 }),
-      makeTask({ title: 'All done', date: TODAY, order: 1, completed: true }),
+      makeTask({ title: 'All done', date: TODAY, order: 1, status: 'done' }),
     ])
     const user = userEvent.setup()
     renderApp()
@@ -585,7 +586,7 @@ describe('keyboard navigation', () => {
         name: rowName('alpha beta gamma', TODAY),
       }),
     ).toBeInTheDocument()
-    expect(storedTasks()[0].completed).toBe(false)
+    expect(storedTasks()[0].status).toBe('todo')
   })
 
   it('cancels an edit with Escape without saving', async () => {
@@ -630,7 +631,7 @@ describe('rollover on mount', () => {
         title: 'Stayed put',
         date: pastDate,
         order: 1,
-        completed: true,
+        status: 'done',
       }),
     ])
     const user = userEvent.setup()
@@ -726,7 +727,7 @@ describe('mobile layout', () => {
     expect(
       within(dialog).getByRole('button', { name: 'Mark as not completed' }),
     ).toBeInTheDocument()
-    expect(storedTasks()[0].completed).toBe(true)
+    expect(storedTasks()[0].status).toBe('done')
 
     await user.click(within(dialog).getByRole('button', { name: 'Delete task' }))
 

@@ -1,8 +1,15 @@
 import { isDateKey } from './date'
-import { PRIORITIES, type Priority, type Task } from '../types/task'
+import { normalizeBoardOrders } from './tasks'
+import {
+  PRIORITIES,
+  STATUSES,
+  type Priority,
+  type Status,
+  type Task,
+} from '../types/task'
 
 export const STORAGE_KEY = 'doto.state'
-export const STORAGE_VERSION = 1
+export const STORAGE_VERSION = 2
 
 export interface PersistedState {
   version: number
@@ -30,6 +37,12 @@ function asPriority(value: unknown): Priority {
   return PRIORITIES.includes(value as Priority) ? (value as Priority) : 'none'
 }
 
+/** Version 1 stored a `completed` flag; it maps onto done or todo. */
+function asStatus(value: unknown, legacyCompleted: unknown): Status {
+  if (STATUSES.includes(value as Status)) return value as Status
+  return legacyCompleted === true ? 'done' : 'todo'
+}
+
 function asTimestamp(value: unknown, fallback: string): string {
   return typeof value === 'string' && !Number.isNaN(Date.parse(value))
     ? value
@@ -52,11 +65,16 @@ export function parseTask(value: unknown): Task | null {
     id,
     title,
     date,
-    completed: value.completed === true,
+    status: asStatus(value.status, value.completed),
     priority: asPriority(value.priority),
     order: typeof value.order === 'number' && Number.isFinite(value.order)
       ? value.order
       : 0,
+    // Unknown positions sort last; `load` ranks each column as a whole.
+    boardOrder:
+      typeof value.boardOrder === 'number' && Number.isFinite(value.boardOrder)
+        ? value.boardOrder
+        : Number.POSITIVE_INFINITY,
     createdAt,
     updatedAt: asTimestamp(value.updatedAt, createdAt),
   }
@@ -112,7 +130,11 @@ export function load(storage: Storage | undefined = safeStorage()): LoadResult {
   }
 
   return {
-    state: { version: STORAGE_VERSION, tasks, lastRolloverDate },
+    state: {
+      version: STORAGE_VERSION,
+      tasks: normalizeBoardOrders(tasks),
+      lastRolloverDate,
+    },
     recovered,
   }
 }

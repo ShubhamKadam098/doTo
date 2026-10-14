@@ -78,45 +78,48 @@ export function SearchDialog({ onClose }: { onClose: () => void }) {
           aria-label="Search results"
           className="max-h-[50vh] overflow-y-auto"
         >
-          {results.map((task, index) => (
-            <li key={task.id}>
-              <button
-                type="button"
-                role="option"
-                aria-selected={index === activeIndex}
-                onMouseEnter={() => setActiveIndex(index)}
-                onClick={() => select(task)}
-                className={`flex w-full items-center gap-3 px-4 py-2.5 text-left ${
-                  index === activeIndex ? 'bg-line' : ''
-                }`}
-              >
-                <span
-                  className={`h-2 w-2 shrink-0 rounded-full ${PRIORITY_DOT[task.priority]}`}
-                  aria-hidden="true"
-                />
-                <span
-                  className={`min-w-0 flex-1 truncate text-[0.9375rem] ${
-                    task.completed ? 'text-done line-through' : 'text-text'
+          {results.map((task, index) => {
+            const completed = task.status === 'done'
+            return (
+              <li key={task.id}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={index === activeIndex}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  onClick={() => select(task)}
+                  className={`flex w-full items-center gap-3 px-4 py-2.5 text-left ${
+                    index === activeIndex ? 'bg-line' : ''
                   }`}
                 >
-                  {task.title}
-                </span>
-                <span className="shrink-0 text-xs text-muted">
-                  {formatFullDate(task.date)}
-                </span>
-                <span className="sr-only">
-                  {task.completed ? 'Completed' : 'Not completed'}. Priority{' '}
-                  {PRIORITY_LABEL[task.priority]}
-                </span>
-                {task.completed && (
-                  <CheckCircleIcon
-                    className="h-4 w-4 shrink-0 text-done"
-                    filled
+                  <span
+                    className={`h-2 w-2 shrink-0 rounded-full ${PRIORITY_DOT[task.priority]}`}
+                    aria-hidden="true"
                   />
-                )}
-              </button>
-            </li>
-          ))}
+                  <span
+                    className={`min-w-0 flex-1 truncate text-[0.9375rem] ${
+                      completed ? 'text-done line-through' : 'text-text'
+                    }`}
+                  >
+                    {task.title}
+                  </span>
+                  <span className="shrink-0 text-xs text-muted">
+                    {formatFullDate(task.date)}
+                  </span>
+                  <span className="sr-only">
+                    {completed ? 'Completed' : 'Not completed'}. Priority{' '}
+                    {PRIORITY_LABEL[task.priority]}
+                  </span>
+                  {completed && (
+                    <CheckCircleIcon
+                      className="h-4 w-4 shrink-0 text-done"
+                      filled
+                    />
+                  )}
+                </button>
+              </li>
+            )
+          })}
 
           {query.trim() !== '' && results.length === 0 && (
             <li className="px-4 py-6 text-center text-sm text-muted">
