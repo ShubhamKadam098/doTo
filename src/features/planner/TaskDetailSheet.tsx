@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import { IconButton } from '../../components/IconButton'
 import { CheckCircleIcon, CloseIcon, TrashIcon } from '../../components/icons'
 import { formatFullDate } from '../../lib/date'
+import { STATUS_LABEL } from '../../lib/status'
 import { PRIORITY_DOT, PRIORITY_LABEL } from '../../lib/priority'
 import { usePlanner } from './PlannerContext'
-import { PRIORITIES, type Task } from '../../types/task'
+import { BOARD_STATUSES, PRIORITIES, type Task } from '../../types/task'
 
-/** Focused mobile editor: rename, complete, prioritise or delete one task. */
+/** Focused mobile editor: rename, set status or priority, discard or delete one task. */
 export function TaskDetailSheet({
   task,
   onClose,
@@ -125,6 +126,41 @@ export function TaskDetailSheet({
             ))}
           </div>
         </fieldset>
+
+        <fieldset className="mt-5">
+          <legend className="text-sm text-muted">Status</legend>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {BOARD_STATUSES.map((status) => (
+              <button
+                key={status}
+                type="button"
+                aria-pressed={task.status === status}
+                onClick={() => planner.setStatus(task.id, status)}
+                className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                  task.status === status
+                    ? 'border-line-strong text-text'
+                    : 'border-line text-muted'
+                }`}
+              >
+                {STATUS_LABEL[status]}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        <button
+          type="button"
+          onClick={() => {
+            if (task.status === 'discarded') planner.restoreTask(task.id)
+            else {
+              planner.discardTask(task.id)
+              onClose()
+            }
+          }}
+          className="mt-6 text-sm text-muted transition-colors hover:text-text"
+        >
+          {task.status === 'discarded' ? 'Restore task' : 'Discard task'}
+        </button>
       </div>
     </div>
   )

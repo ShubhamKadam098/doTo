@@ -22,7 +22,7 @@ import {
   type FocusTarget,
   type PlannerValue,
 } from './PlannerContext'
-import type { Filter, Priority, Task } from '../../types/task'
+import type { Filter, Priority, Status, Task } from '../../types/task'
 
 export function PlannerProvider({ children }: { children: ReactNode }) {
   const { state, dispatch, canUndo, canRedo } = useTaskStore()
@@ -129,12 +129,14 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
 
   const revealTask = useCallback(
     (task: Task) => {
-      setFilter((current) =>
-        (current === 'active' && !isOpen(task)) ||
-        (current === 'completed' && task.status !== 'done')
+      setFilter((current) => {
+        if (task.status === 'discarded') return 'discarded'
+        return current === 'discarded' ||
+          (current === 'active' && !isOpen(task)) ||
+          (current === 'completed' && task.status !== 'done')
           ? 'all'
-          : current,
-      )
+          : current
+      })
       setWeekStart(startOfWeekKey(task.date))
       const row = tasksForDate(state.tasks, task.date).findIndex(
         (candidate) => candidate.id === task.id,
@@ -146,7 +148,8 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   )
 
   const createTask = useCallback(
-    (date: string, title: string) => dispatch({ type: 'create', date, title }),
+    (date: string, title: string, status?: Status) =>
+      dispatch({ type: 'create', date, title, status }),
     [dispatch],
   )
   const renameTask = useCallback(
@@ -158,8 +161,9 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     },
     [dispatch],
   )
-  const removeTask = useCallback(
-    (id: string) => {
+  /** Runs a change that takes `id` out of its day's visible rows. */
+  const takeOutOfView = useCallback(
+    (id: string, run: () => void) => {
       // Focus is a position, so losing a row above it would otherwise leave an
       // open editor pointing at whatever slid into its place.
       const removedRow = tasksForDate(state.tasks, focus?.date ?? '').findIndex(
@@ -168,7 +172,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
 
       // Animated so the rows below close the gap rather than jumping into it.
       withViewTransition(() => {
-        dispatch({ type: 'delete', id })
+        run()
         if (removedRow >= 0) {
           setFocus((current) =>
             current && current.row > removedRow
@@ -178,7 +182,33 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
         }
       })
     },
-    [dispatch, focus?.date, state.tasks],
+    [focus?.date, state.tasks],
+  )
+  const removeTask = useCallback(
+    (id: string) => takeOutOfView(id, () => dispatch({ type: 'delete', id })),
+    [dispatch, takeOutOfView],
+  )
+  const discardTask = useCallback(
+    (id: string) =>
+      takeOutOfView(id, () =>
+        dispatch({ type: 'setStatus', id, status: 'discarded' }),
+      ),
+    [dispatch, takeOutOfView],
+  )
+  const restoreTask = useCallback(
+    (id: string) =>
+      takeOutOfView(id, () => dispatch({ type: 'setStatus', id, status: 'todo' })),
+    [dispatch, takeOutOfView],
+  )
+  const setStatus = useCallback(
+    (id: string, status: Status, toIndex?: number) =>
+      dispatch({ type: 'setStatus', id, status, toIndex }),
+    [dispatch],
+  )
+  const reorderOnBoard = useCallback(
+    (id: string, toIndex: number) =>
+      dispatch({ type: 'reorderOnBoard', id, toIndex }),
+    [dispatch],
   )
   const duplicateTask = useCallback(
     (id: string) => dispatch({ type: 'duplicate', id }),
@@ -229,6 +259,10 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       toggleTask,
       setPriority,
       relocateTask,
+      setStatus,
+      reorderOnBoard,
+      discardTask,
+      restoreTask,
       undo,
       redo,
     }),
@@ -257,6 +291,10 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       toggleTask,
       setPriority,
       relocateTask,
+      setStatus,
+      reorderOnBoard,
+      discardTask,
+      restoreTask,
       undo,
       redo,
     ],

@@ -98,7 +98,11 @@ export function SearchDialog({ onClose }: { onClose: () => void }) {
                   />
                   <span
                     className={`min-w-0 flex-1 truncate text-[0.9375rem] ${
-                      completed ? 'text-done line-through' : 'text-text'
+                      task.status === 'discarded'
+                        ? 'text-muted'
+                        : completed
+                          ? 'text-done line-through'
+                          : 'text-text'
                     }`}
                   >
                     {task.title}
@@ -106,6 +110,11 @@ export function SearchDialog({ onClose }: { onClose: () => void }) {
                   <span className="shrink-0 text-xs text-muted">
                     {formatFullDate(task.date)}
                   </span>
+                  {task.status === 'discarded' && (
+                    <span className="shrink-0 rounded-full border border-line px-1.5 text-[0.6875rem] text-muted">
+                      Discarded
+                    </span>
+                  )}
                   <span className="sr-only">
                     {completed ? 'Completed' : 'Not completed'}. Priority{' '}
                     {PRIORITY_LABEL[task.priority]}

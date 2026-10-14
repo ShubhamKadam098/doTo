@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import type { Filter, Priority, Task } from '../../types/task'
+import type { Filter, Priority, Status, Task } from '../../types/task'
 
 export interface FocusTarget {
   date: string
@@ -42,13 +42,18 @@ export interface PlannerValue {
   readDraft: () => string | null
   writeDraft: (value: string | null) => void
 
-  createTask: (date: string, title: string) => void
+  createTask: (date: string, title: string, status?: Status) => void
   renameTask: (id: string, title: string) => void
   removeTask: (id: string) => void
   duplicateTask: (id: string) => void
   toggleTask: (id: string) => void
   setPriority: (id: string, priority: Priority) => void
   relocateTask: (id: string, toDate: string, toIndex: number) => void
+  setStatus: (id: string, status: Status, toIndex?: number) => void
+  reorderOnBoard: (id: string, toIndex: number) => void
+  /** Hides a task without deleting it; Restore brings it back to Todo. */
+  discardTask: (id: string) => void
+  restoreTask: (id: string) => void
   undo: () => void
   redo: () => void
 }

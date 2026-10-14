@@ -3,6 +3,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { CheckCircleIcon, TrashIcon } from '../../components/icons'
 import { PriorityMenu } from '../../components/PriorityMenu'
+import { StatusMenuItems } from '../../components/StatusMenuItems'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -10,6 +11,7 @@ import {
   ContextMenuTrigger,
 } from '../../components/ui/context-menu'
 import { formatWeekdayLong, formatDayNumber } from '../../lib/date'
+import { STATUS_LABEL, showsStatusPill } from '../../lib/status'
 import {
   PRIORITY_BY_KEY,
   PRIORITY_LABEL,
@@ -44,6 +46,8 @@ export function TaskRow({
     ? isFocused
     : planner.defaultFocus.date === date && planner.defaultFocus.row === row
   const isEditing = isFocused && editing
+  // Discarded tasks are a list to restore from, not a place to write.
+  const readOnly = planner.filter === 'discarded'
   const titleRef = useRef<HTMLButtonElement>(null)
 
   const {
@@ -66,7 +70,9 @@ export function TaskRow({
   // A new task is always appended, so editing any blank row collapses onto the
   // first free one instead of leaving the caret stranded further down.
   const editRow = task ? row : taskCount
-  const startEditing = () => planner.focusSlot({ date, row: editRow }, true)
+  const startEditing = () => {
+    if (!readOnly) planner.focusSlot({ date, row: editRow }, true)
+  }
 
   const commit = (value: string) => {
     planner.writeDraft(null)
@@ -112,7 +118,7 @@ export function TaskRow({
         else startEditing()
         return
       case ' ':
-        if (!task) return
+        if (!task || readOnly) return
         event.preventDefault()
         planner.toggleTask(task.id)
         return
@@ -207,10 +213,16 @@ export function TaskRow({
             task
               ? `${task.title}. ${formatWeekdayLong(date)} ${formatDayNumber(date)}. ${
                   completed ? 'Completed' : 'Not completed'
-                }. Priority ${PRIORITY_LABEL[task.priority]}`
-              : `Add a task on ${formatWeekdayLong(date)} ${formatDayNumber(date)}`
+                }.${
+                  showsStatusPill(task.status)
+                    ? ` ${STATUS_LABEL[task.status]}.`
+                    : ''
+                } Priority ${PRIORITY_LABEL[task.priority]}`
+              : readOnly
+                ? `Empty row on ${formatWeekdayLong(date)} ${formatDayNumber(date)}`
+                : `Add a task on ${formatWeekdayLong(date)} ${formatDayNumber(date)}`
           }
-          className={`flex min-w-0 flex-1 cursor-text items-center rounded-sm py-1 text-left text-[0.9375rem] focus-visible:outline-none ${
+          className={`flex min-w-0 flex-1 ${readOnly ? 'cursor-default' : 'cursor-text'} items-center rounded-sm py-1 text-left text-[0.9375rem] focus-visible:outline-none ${
             task ? '' : 'text-transparent'
           }`}
         >
@@ -223,10 +235,27 @@ export function TaskRow({
           >
             {task?.title ?? ' '}
           </span>
+          {task && showsStatusPill(task.status) && (
+            <span className="ml-2.5 shrink-0 rounded-full border border-line-strong px-1.5 py-px text-[0.6875rem] text-muted">
+              {STATUS_LABEL[task.status]}
+            </span>
+          )}
         </button>
       )}
 
-      {task && (
+      {task && task.status === 'discarded' && !isEditing && (
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={() => planner.restoreTask(task.id)}
+          aria-label={`Restore "${task.title}"`}
+          className="shrink-0 rounded-full px-2 py-0.5 text-[0.8125rem] text-muted transition hover:text-text"
+        >
+          Restore
+        </button>
+      )}
+
+      {task && task.status !== 'discarded' && (
         /* One tight cluster: three `gap-2` siblings spent most of the row's
            width on the space between them rather than on the title. */
         <div className="flex shrink-0 items-center gap-0.5">
@@ -292,6 +321,12 @@ export function TaskRow({
         {rowContent}
       </ContextMenuTrigger>
       <ContextMenuContent>
+        <StatusMenuItems
+          task={task}
+          onMove={(status) => planner.setStatus(task.id, status)}
+          onDiscard={() => planner.discardTask(task.id)}
+          onRestore={() => planner.restoreTask(task.id)}
+        />
         <ContextMenuItem onClick={() => planner.duplicateTask(task.id)}>
           Duplicate
         </ContextMenuItem>
