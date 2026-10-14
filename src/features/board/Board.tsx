@@ -7,6 +7,7 @@ import { TaskDetailSheet } from '../planner/TaskDetailSheet'
 import { BoardCard } from './BoardCard'
 import { BoardColumn } from './BoardColumn'
 import { BoardDnd } from './BoardDnd'
+import { MobileBoard } from './MobileBoard'
 import { boardColumn, columnIndexFor } from './boardModel'
 
 /** The visible week's tasks as four status columns. */
@@ -113,39 +114,43 @@ export function Board({ isDesktop }: { isDesktop: boolean }) {
     }
   }
 
+  const renderCard = (task: Task) => (
+    <BoardCard
+      key={task.id}
+      task={task}
+      today={planner.today}
+      isFocused={focusId === task.id}
+      isTabbable={tabId === task.id}
+      onFocus={() => setFocusId(task.id)}
+      onKeyDown={onCardKeyDown(task)}
+      onOpen={() => setDetailId(task.id)}
+      variant={isDesktop ? 'desktop' : 'mobile'}
+    />
+  )
+
   return (
     <BoardDnd dates={dates}>
-      <div
-        className={
-          isDesktop
-            ? 'grid grid-cols-4 gap-6 px-10 pb-24'
-            : 'flex flex-col gap-8 px-4 pb-24'
-        }
-      >
-        {columns.map(({ status, tasks }) => (
-          <BoardColumn
-            key={status}
-            status={status}
-            count={tasks.length}
-            ids={tasks.map((task) => task.id)}
-            onAdd={(title) => planner.createTask(addDate, title, status)}
-          >
-            {tasks.map((task) => (
-              <BoardCard
-                key={task.id}
-                task={task}
-                today={planner.today}
-                isFocused={focusId === task.id}
-                isTabbable={tabId === task.id}
-                onFocus={() => setFocusId(task.id)}
-                onKeyDown={onCardKeyDown(task)}
-                onOpen={() => setDetailId(task.id)}
-                variant={isDesktop ? 'desktop' : 'mobile'}
-              />
-            ))}
-          </BoardColumn>
-        ))}
-      </div>
+      {isDesktop ? (
+        <div className="grid grid-cols-4 gap-6 px-10 pb-24">
+          {columns.map(({ status, tasks }) => (
+            <BoardColumn
+              key={status}
+              status={status}
+              count={tasks.length}
+              ids={tasks.map((task) => task.id)}
+              onAdd={(title) => planner.createTask(addDate, title, status)}
+            >
+              {tasks.map(renderCard)}
+            </BoardColumn>
+          ))}
+        </div>
+      ) : (
+        <MobileBoard
+          columns={columns}
+          renderCard={renderCard}
+          onAdd={(status, title) => planner.createTask(addDate, title, status)}
+        />
+      )}
 
       {detail && (
         <TaskDetailSheet task={detail} onClose={() => setDetailId(null)} />

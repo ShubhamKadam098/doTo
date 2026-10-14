@@ -188,3 +188,35 @@ describe('board interaction', () => {
     ).toHaveAttribute('tabindex', '0')
   })
 })
+
+describe('mobile board', () => {
+  it('shows one column at a time behind tabs with counts', async () => {
+    seedStorage([
+      makeTask({ title: 'Plan', date: TODAY }),
+      makeTask({ title: 'Await', date: TODAY, status: 'waiting', order: 1 }),
+    ])
+    const user = userEvent.setup()
+    renderApp({ desktop: false })
+    await openBoard(user)
+
+    const tabs = screen.getByRole('tablist', { name: 'Board columns' })
+    expect(within(tabs).getByRole('tab', { name: 'Todo 1' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('button', { name: cardName('Plan') })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: cardName('Await') })).not.toBeInTheDocument()
+
+    await user.click(within(tabs).getByRole('tab', { name: 'Waiting 1' }))
+    expect(screen.getByRole('button', { name: cardName('Await') })).toBeInTheDocument()
+  })
+
+  it('moves a card from the detail sheet', async () => {
+    seedStorage([makeTask({ title: 'Plan', date: TODAY })])
+    const user = userEvent.setup()
+    renderApp({ desktop: false })
+    await openBoard(user)
+
+    await user.click(screen.getByRole('button', { name: cardName('Plan') }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Waiting' }))
+
+    expect(storedTasks()[0].status).toBe('waiting')
+  })
+})
