@@ -25,30 +25,56 @@ export function PlannerHeader({ onOpenSearch }: { onOpenSearch: () => void }) {
       </h1>
 
       {/* Filters wrap to a line of their own before the week controls overflow. */}
-      <div
-        role="radiogroup"
-        aria-label="Filter tasks"
-        className="order-last flex w-full items-center gap-0.5 sm:order-none sm:w-auto sm:gap-1"
-      >
-        {FILTERS.map((filter) => (
-          <button
-            key={filter}
-            type="button"
-            role="radio"
-            aria-checked={planner.filter === filter}
-            onClick={() => planner.setFilter(filter)}
-            className={`rounded-full px-2.5 py-1.5 text-[0.8125rem] transition-colors sm:px-3 sm:text-sm ${
-              planner.filter === filter
-                ? 'bg-elevated text-text'
-                : 'text-muted hover:text-text'
-            }`}
-          >
-            {FILTER_LABEL[filter]}
-          </button>
-        ))}
-      </div>
+      {planner.view === 'week' && (
+        <div
+          role="radiogroup"
+          aria-label="Filter tasks"
+          className="order-last flex w-full items-center gap-0.5 sm:order-none sm:w-auto sm:gap-1"
+        >
+          {FILTERS.map((filter) => (
+            <button
+              key={filter}
+              type="button"
+              role="radio"
+              aria-checked={planner.filter === filter}
+              onClick={() => planner.setFilter(filter)}
+              className={`rounded-full px-2.5 py-1.5 text-[0.8125rem] transition-colors sm:px-3 sm:text-sm ${
+                planner.filter === filter
+                  ? 'bg-elevated text-text'
+                  : 'text-muted hover:text-text'
+              }`}
+            >
+              {FILTER_LABEL[filter]}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+        <div
+          role="radiogroup"
+          aria-label="View"
+          className="flex items-center rounded-full bg-elevated p-0.5"
+        >
+          {(['week', 'board'] as const).map((view) => (
+            <button
+              key={view}
+              type="button"
+              role="radio"
+              aria-checked={planner.view === view}
+              onClick={() => planner.setView(view)}
+              title={`${view === 'week' ? 'Week' : 'Board'} view (V)`}
+              className={`rounded-full px-2.5 py-1 text-[0.8125rem] transition-colors sm:px-3 sm:text-sm ${
+                planner.view === view
+                  ? 'bg-line text-text'
+                  : 'text-muted hover:text-text'
+              }`}
+            >
+              {view === 'week' ? 'Week' : 'Board'}
+            </button>
+          ))}
+        </div>
+
         <IconButton
           label="Search tasks (Ctrl+K)"
           onClick={onOpenSearch}

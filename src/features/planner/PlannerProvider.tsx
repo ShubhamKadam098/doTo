@@ -12,6 +12,7 @@ import {
   weekDayKeys,
 } from '../../lib/date'
 import { applyFilter, isOpen, tasksForDate } from '../../lib/tasks'
+import { loadView, saveView, type View } from '../../lib/viewPreference'
 import { withViewTransition } from '../../lib/viewTransition'
 import { useTaskStore } from '../tasks/TaskStoreContext'
 import {
@@ -30,6 +31,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
 
   const [weekStart, setWeekStart] = useState(() => startOfWeekKey(today))
   const [filter, setFilter] = useState<Filter>('all')
+  const [view, setViewState] = useState<View>(loadView)
   const [focus, setFocus] = useState<FocusTarget | null>(null)
   const [editing, setEditing] = useState(false)
 
@@ -127,8 +129,17 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     setEditing(false)
   }, [today])
 
+  const setView = useCallback((next: View) => {
+    setViewState(next)
+    saveView(next)
+    setFocus(null)
+    setEditing(false)
+  }, [])
+
   const revealTask = useCallback(
     (task: Task) => {
+      setViewState('week')
+      saveView('week')
       setFilter((current) => {
         if (task.status === 'discarded') return 'discarded'
         return current === 'discarded' ||
@@ -237,6 +248,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       weekStart,
       days,
       filter,
+      view,
       focus,
       defaultFocus,
       editing,
@@ -244,6 +256,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       canUndo,
       canRedo,
       setFilter,
+      setView,
       shiftWeek,
       goToToday,
       revealTask,
@@ -271,12 +284,14 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       weekStart,
       days,
       filter,
+      view,
       focus,
       defaultFocus,
       editing,
       state.tasks,
       canUndo,
       canRedo,
+      setView,
       shiftWeek,
       goToToday,
       revealTask,

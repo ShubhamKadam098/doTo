@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { useGlobalShortcuts } from '../../hooks/useGlobalShortcuts'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { tasksForDate } from '../../lib/tasks'
+import { Board } from '../board/Board'
 import { SearchDialog } from '../search/SearchDialog'
 import { MobileWeek } from './MobileWeek'
 import { PlannerDnd } from './PlannerDnd'
@@ -11,6 +12,7 @@ import { WeekGrid } from './WeekGrid'
 
 export function Planner() {
   const planner = usePlanner()
+  const { view, setView } = planner
   const [searchOpen, setSearchOpen] = useState(false)
   const isDesktop = useMediaQuery('(min-width: 900px)')
 
@@ -31,9 +33,18 @@ export function Planner() {
         onUndo: planner.undo,
         onRedo: planner.redo,
         onToday: planner.goToToday,
-        onNewTask: focusNewTask,
+        onNewTask: view === 'week' ? focusNewTask : () => {},
+        onToggleView: () =>
+          setView(view === 'week' ? 'board' : 'week'),
       }),
-      [planner.undo, planner.redo, planner.goToToday, focusNewTask],
+      [
+        planner.undo,
+        planner.redo,
+        planner.goToToday,
+        view,
+        setView,
+        focusNewTask,
+      ],
     ),
     !searchOpen,
   )
@@ -50,11 +61,23 @@ export function Planner() {
       <PlannerHeader onOpenSearch={() => setSearchOpen(true)} />
 
       <main id="planner">
-        <h2 className="sr-only">
-          Weekly planner. Arrow keys move between rows and days, Enter edits,
-          Space completes, Delete removes.
-        </h2>
-        <PlannerDnd>{isDesktop ? <WeekGrid /> : <MobileWeek />}</PlannerDnd>
+        {planner.view === 'board' ? (
+          <>
+            <h2 className="sr-only">
+              Board. Arrow keys move between cards, Alt with an arrow moves the
+              card, Enter opens it.
+            </h2>
+            <Board isDesktop={isDesktop} />
+          </>
+        ) : (
+          <>
+            <h2 className="sr-only">
+              Weekly planner. Arrow keys move between rows and days, Enter edits,
+              Space completes, Delete removes.
+            </h2>
+            <PlannerDnd>{isDesktop ? <WeekGrid /> : <MobileWeek />}</PlannerDnd>
+          </>
+        )}
       </main>
 
       {searchOpen && <SearchDialog onClose={() => setSearchOpen(false)} />}

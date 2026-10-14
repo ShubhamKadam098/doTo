@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react'
+import type { View } from '../../lib/viewPreference'
 import type { Filter, Priority, Status, Task } from '../../types/task'
 
 export interface FocusTarget {
@@ -19,6 +20,7 @@ export interface PlannerValue {
   weekStart: string
   days: DayModel[]
   filter: Filter
+  view: View
   focus: FocusTarget | null
   /** Row that owns the tab stop before the user has focused anything. */
   defaultFocus: FocusTarget
@@ -28,6 +30,7 @@ export interface PlannerValue {
   canRedo: boolean
 
   setFilter: (filter: Filter) => void
+  setView: (view: View) => void
   shiftWeek: (delta: number) => void
   goToToday: () => void
   revealTask: (task: Task) => void

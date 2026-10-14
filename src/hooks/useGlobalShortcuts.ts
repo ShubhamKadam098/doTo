@@ -6,6 +6,7 @@ export interface ShortcutHandlers {
   onRedo: () => void
   onToday: () => void
   onNewTask: () => void
+  onToggleView: () => void
 }
 
 /** True while the user is typing, so single-letter shortcuts stay out of the way. */
@@ -71,6 +72,9 @@ export function useGlobalShortcuts(
       } else if (event.key === 'n' || event.key === 'N') {
         event.preventDefault()
         handlers.onNewTask()
+      } else if (event.key === 'v' || event.key === 'V') {
+        event.preventDefault()
+        handlers.onToggleView()
       }
     }
 
