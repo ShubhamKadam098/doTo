@@ -115,4 +115,25 @@ describe('status in the week', () => {
       }),
     ).toHaveAttribute('aria-checked', 'true')
   })
+
+  it('keeps discarded rows read-only: no priority keys, no Duplicate', async () => {
+    seedStorage([makeTask({ title: 'Old idea', date: TODAY, status: 'discarded' })])
+    const user = userEvent.setup()
+    renderApp()
+
+    await user.click(
+      within(screen.getByRole('radiogroup', { name: 'Filter tasks' })).getByRole('radio', {
+        name: 'Discarded',
+      }),
+    )
+    const target = row('Old idea')
+    target.focus()
+    await user.keyboard('4')
+    expect(storedTasks()[0].priority).toBe('none')
+
+    const menu = await openMenu(user, target)
+    expect(menu.getByRole('menuitem', { name: 'Restore' })).toBeInTheDocument()
+    expect(menu.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument()
+    expect(menu.queryByRole('menuitem', { name: 'Duplicate' })).not.toBeInTheDocument()
+  })
 })

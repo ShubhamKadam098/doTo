@@ -59,7 +59,7 @@ export function TaskRow({
     isDragging,
   } = useSortable({
     id: task?.id ?? `slot:${date}:${row}`,
-    disabled: !task || isEditing,
+    disabled: !task || isEditing || readOnly,
     data: { date, taskId: task?.id },
   })
 
@@ -134,7 +134,7 @@ export function TaskRow({
 
     // Number keys set priority; every other letter is left to the global
     // shortcuts (T, N) so they keep working while a row has focus.
-    if (task && PRIORITY_BY_KEY[event.key] && !event.metaKey && !event.ctrlKey) {
+    if (task && !readOnly && PRIORITY_BY_KEY[event.key] && !event.metaKey && !event.ctrlKey) {
       event.preventDefault()
       planner.setPriority(task.id, PRIORITY_BY_KEY[event.key])
     }
@@ -327,9 +327,11 @@ export function TaskRow({
           onDiscard={() => planner.discardTask(task.id)}
           onRestore={() => planner.restoreTask(task.id)}
         />
-        <ContextMenuItem onClick={() => planner.duplicateTask(task.id)}>
-          Duplicate
-        </ContextMenuItem>
+        {task.status !== 'discarded' && (
+          <ContextMenuItem onClick={() => planner.duplicateTask(task.id)}>
+            Duplicate
+          </ContextMenuItem>
+        )}
         <ContextMenuItem
           variant="destructive"
           onClick={() => planner.removeTask(task.id)}
